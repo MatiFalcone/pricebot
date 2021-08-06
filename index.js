@@ -1,6 +1,7 @@
 const { ApolloServer, gql } = require("apollo-server-express");
 const TokenService = require("./datasources/file");
 const APIService = require("./datasources/api");
+const GraphQLService = require("./datasources/graphql");
 
 const express = require("express");
 const app = express();
@@ -16,7 +17,16 @@ const typeDefs = gql`
         blockHeight: Int
       ): [Token],
       getTokenBySymbol(symbol: String): Token,
-      persons: [Person]
+      persons: [Person],
+      products: [Product!]
+    }
+
+    type Product {
+        id: ID!
+        description: String
+        name: String!
+        price: Int!
+        slug: String!
     }
 
     type Token {
@@ -43,7 +53,8 @@ const typeDefs = gql`
 
 const dataSources = () => ({
     tokenService: new TokenService(),
-    apiService: new APIService()
+    apiService: new APIService(),
+    graphQLService: new GraphQLService()
 })
 
 const resolvers = {
@@ -56,6 +67,9 @@ const resolvers = {
         },
         persons: (parent, args, { dataSources }, info) => {
             return dataSources.apiService.getPerson();
+        },
+        products: (parent, args, { dataSources }, info) => {
+            return dataSources.graphQLService.getProducts();
         }
     },
     Mutation: {
