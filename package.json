@@ -1,0 +1,21 @@
+{
+  "name": "graphqlserver",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matias Falcone",
+  "license": "ISC",
+  "dependencies": {
+    "apollo-datasource": "^3.0.3",
+    "apollo-datasource-graphql": "^1.3.2",
+    "apollo-datasource-rest": "^3.1.1",
+    "apollo-server-express": "^2.25.2",
+    "express": "^4.17.1",
+    "nodemon": "^2.0.12",
+    "underscore": "^1.13.1"
+  }
+}
