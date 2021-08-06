@@ -1,7 +1,6 @@
 const { ApolloServer, gql } = require("apollo-server-express");
 const TokenService = require("./datasources/file");
 const APIService = require("./datasources/api");
-const GraphQLService = require("./datasources/graphql");
 
 const express = require("express");
 const app = express();
@@ -44,8 +43,7 @@ const typeDefs = gql`
 
 const dataSources = () => ({
     tokenService: new TokenService(),
-    apiService: new APIService(),
-    graphQLService: new GraphQLService()
+    apiService: new APIService()
 })
 
 const resolvers = {
