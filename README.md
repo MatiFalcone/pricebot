@@ -1,18 +1,14 @@
-PolyTools GraphQL Backend
--------------------------
+PolyTools Backend
+-----------------
 
 This is the first version of the PolyTools backend.
 
-At the moment, it retrieves mocked data for the tokens and gets data also from a very easy API, just to show how it works.
+At the moment, it has the following functionality:
 
-# To do:
+1. getTokenInfo: retrieves the information of the token address specified in :token using WMATIC as quote currency.
 
-1. Add PolygonScan API.
-2. Add 0x API.
-3. Add BitQuery GraphQL.
-4. Add The Graph subgraphs.
-5. Add any other data source we want.
+2. getLastTrades: retrieves the last 5 QuickSwap trades of the token address specified in :token
 
-# Nice to have: 
+3. OHLC data: retrieves OHLC data from the last 10 QuickSwap trades of :token (using startTime/endTime range)
 
-1. Add graphql-jit library for cache (better performance).
+All the information is obtained from MATIC network, using BitQuery GraphQL.
