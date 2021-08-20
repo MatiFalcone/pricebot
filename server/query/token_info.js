@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const Redis = require("ioredis");
 let redis;
 // Redis instance
-if(process.env.NODE_ENV === "dev") {
+if(process.env.NODE_ENV !== "production") {
   redis = new Redis({
     "port":6379,
     "host":"localhost"
@@ -11,14 +11,14 @@ if(process.env.NODE_ENV === "dev") {
   redis = new Redis(process.env.REDIS_URL);
 }
  
-async function getTokenInfo(tokenAddress) {
+async function getTokenInfo(tokenAddress, exchangeAddress) {
 
   const query = `
 {
   ethereum(network: matic) {
     dexTrades(
       options: {desc: ["block.height","tradeIndex"], limit: 1}
-      exchangeName: {in: ["QuickSwap"]}
+      exchangeName: {in: ["${exchangeAddress}"]}
       baseCurrency: {is: "${tokenAddress}"}
       quoteCurrency: {is: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"} #WMATIC
       date: {after: "2021-07-28"}
@@ -68,7 +68,7 @@ const opts = {
 };
 
 // Check if I have a cache value for this response
-let cacheEntry = await redis.get(`tokenInfo:${tokenAddress}`);
+let cacheEntry = await redis.get(`tokenInfo:${tokenAddress}+${exchangeAddress}`);
 
 // If we have a cache hit
 if (cacheEntry) {
@@ -80,7 +80,7 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 5 minutes
-redis.set(`tokenInfo:${tokenAddress}`, JSON.stringify(data), "EX", 300);
+redis.set(`tokenInfo:${tokenAddress}+${exchangeAddress}`, JSON.stringify(data), "EX", 300);
 return data;
 
 }

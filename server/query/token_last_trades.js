@@ -3,7 +3,7 @@ const Redis = require("ioredis");
 
 let redis;
 // Redis instance
-if(process.env.NODE_ENV === "dev") {
+if(process.env.NODE_ENV !== "production") {
   redis = new Redis({
     "port":6379,
     "host":"localhost"
@@ -69,8 +69,6 @@ async function getLastTrades(tokenAddress, exchangeAddress) {
     }
   }  
 `;
-
-console.log(query);
 
 const url = "https://graphql.bitquery.io/";
 
