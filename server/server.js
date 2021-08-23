@@ -12,7 +12,9 @@ const cors = require("cors");
 const server = http.createServer(app);
 const verifyToken = require("../middlewares/authentication");
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+  origin: "*"
+}));
 
 // Process ID
 console.log(process.pid);
