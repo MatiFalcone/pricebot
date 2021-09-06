@@ -12,41 +12,20 @@ if(process.env.NODE_ENV !== "production") {
   redis = new Redis(process.env.REDIS_URL);
 }
 
-async function getPairInfoAt(blockNumber, pairAddress) {
+async function getTokenLiquidityAt(blockNumber, tokenAddress) {
 
   const query = `
-  fragment PairFields on Pair {
-    id
-    token0 {
+  {
+    tokens(block: {number: ${blockNumber}}, where: {id: "${tokenAddress}"}) {
       id
       symbol
       name
+      decimals
+      totalSupply
+      tradeVolume
+      tradeVolumeUSD
       totalLiquidity
       derivedETH
-    }
-    token1 {
-      id
-      symbol
-      name
-      totalLiquidity
-      derivedETH
-    }
-    reserve0
-    reserve1
-    reserveUSD
-    totalSupply
-    trackedReserveETH
-    reserveETH
-    volumeUSD
-    untrackedVolumeUSD
-    token0Price
-    token1Price
-    createdAtTimestamp
-  }
-  
-  query pairs {
-    pairs(block: {number: ${blockNumber}}, where: {id: "${pairAddress}"}) {
-      ...PairFields
     }
   }
 `;
@@ -65,7 +44,7 @@ const opts = {
 };
 
 // Check if I have a cache value for this response
-let cacheEntry = await redis.get(`pairInfoAt:${blockNumber}+${pairAddress}`);
+let cacheEntry = await redis.get(`tokenLiquidityAt:${blockNumber}+${tokenAddress}`);
 
 // If we have a cache hit
 if (cacheEntry) {
@@ -77,10 +56,10 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 1 minute
-redis.set(`pairInfoAt:${blockNumber}+${pairAddress}`, JSON.stringify(data), "EX", 120);
+redis.set(`tokenLiquidityAt:${blockNumber}+${tokenAddress}`, JSON.stringify(data), "EX", 120);
 return data;
 
 }
 
-module.exports = getPairInfoAt;
+module.exports = getTokenLiquidityAt;
 

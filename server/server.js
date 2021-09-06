@@ -11,6 +11,7 @@ const bcrypt = require("bcrypt");
 const cors = require("cors");
 const server = http.createServer(app);
 const verifyToken = require("../middlewares/authentication");
+const bot = require("./query/pricebot");
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: "*"
@@ -93,7 +94,33 @@ const getCandleData = require("./query/ohlc");
 const getPairData = require("./query/pair_mint_burn_swap");
 const getPairInfoAt = require("./query/pair_info");
 const getBlockNumber = require("./query/blocks");
+//const makeOrder = require("./query/0x");
+//const getOrderbook = require("./query/0x_orderbook");
+/*
+// Retrieves the information of the token address specified in :token using WMATIC as quote currency
+app.get("/makeOrder", async (req, res) => {
 
+  const newOrder = await makeOrder();
+
+  res.json({
+    ok: true,
+    newOrder
+  });
+
+});
+
+// Retrieves the information of the token address specified in :token using WMATIC as quote currency
+app.get("/getOrderbook", async (req, res) => {
+
+  const orderbook = await getOrderbook();
+
+  res.json({
+    ok: true,
+    orderbook
+  });
+
+});
+*/
 // Retrieves the information of the token address specified in :token using WMATIC as quote currency
 app.get("/tokenInfo", async (req, res) => {
 
@@ -167,7 +194,6 @@ app.get("/pairInfo", async (req, res) => {
   const blockData = await getBlockNumber(timestamp);
 
   let blockNumber = parseInt(blockData.data.blocks[0].number);
-  console.log(blockNumber);
 
   const pairInfo = await getPairInfoAt(blockNumber, pairAddress);
 
