@@ -2,20 +2,45 @@
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const TelegramBot = require("node-telegram-bot-api");
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 const app = express();
 const bcrypt = require("bcrypt");
 const cors = require("cors");
-const server = http.createServer(app);
+//const server = http.createServer(app);
+const mongoose = require("mongoose");
+
+const server = https.createServer({
+  key: fs.readFileSync("./cert/key.pem", "utf8"),
+  cert: fs.readFileSync("./cert/server.crt", "utf8")
+} , app);
+
 const verifyToken = require("../middlewares/authentication");
 const bot = require("./query/pricebot");
-app.use(express.urlencoded({ extended: true }));
+const bodyParser = require("body-parser");
+
+app.use(express.urlencoded({
+  extended: true
+}));
+
+//app.use(express.urlencoded({ extended: true }));
 app.use(cors({
   origin: "*"
 }));
+
+// Connect to MongoDB
+// Me conecto a la base de datos de MongoDB
+mongoose.connect(process.env.URLDB, (error, respuesta) => {
+
+if (error) throw error;
+
+console.log("Database ONLINE.");
+
+});
 
 // Process ID
 console.log(process.pid);
@@ -49,15 +74,6 @@ io.on("connection", (client) => {
     delete clients[userID];
     console.log("The client disconnected.");
   });
-
-  // Emitir que terminé a todos los clientes
-  //client.broadcast.emit("Esta es la señal SIGUSR2");
-
-});
-
-// LISTEN
-server.listen(process.env.PORT, () => {
-  console.log(`Server listening on ${process.env.PORT}`);
 
 });
 
@@ -94,33 +110,7 @@ const getCandleData = require("./query/ohlc");
 const getPairData = require("./query/pair_mint_burn_swap");
 const getPairInfoAt = require("./query/pair_info");
 const getBlockNumber = require("./query/blocks");
-//const makeOrder = require("./query/0x");
-//const getOrderbook = require("./query/0x_orderbook");
-/*
-// Retrieves the information of the token address specified in :token using WMATIC as quote currency
-app.get("/makeOrder", async (req, res) => {
 
-  const newOrder = await makeOrder();
-
-  res.json({
-    ok: true,
-    newOrder
-  });
-
-});
-
-// Retrieves the information of the token address specified in :token using WMATIC as quote currency
-app.get("/getOrderbook", async (req, res) => {
-
-  const orderbook = await getOrderbook();
-
-  res.json({
-    ok: true,
-    orderbook
-  });
-
-});
-*/
 // Retrieves the information of the token address specified in :token using WMATIC as quote currency
 app.get("/tokenInfo", async (req, res) => {
 
@@ -201,5 +191,103 @@ app.get("/pairInfo", async (req, res) => {
     ok: true,
     pairInfo
   });
+
+});
+
+// PRICEBOT MANAGEMENT
+const addBot = require("./functions/bot");
+
+app.use(express.json());
+const rthw = `/bot${process.env.TELEGRAM_API_KEY}`;
+
+app.post(rthw, (req, res) => {
+  
+  console.log(req.body);
+
+  // Parse text from the user
+  let pieces = req.body.message.text.split(" ");
+  let command = pieces[0];
+
+  // If it's a private conversation, I tell the user to register the bot
+  if(req.body.message.chat.type === "private") {
+    // Capture the "/register" command to provide more information
+    if(command === "/register") {
+      bot.sendMessage(req.body.message.chat.id, `Please, add me to your group and use this same command there. Keep in mind you need to have Admin rights.`);
+      res.sendStatus(200);
+    } else {
+      bot.sendMessage(req.body.message.chat.id, `Please, register your bot.`);
+      res.sendStatus(200);
+    }
+  } else {
+    bot.processUpdate(req.body);
+    res.sendStatus(200);
+  }
+})
+
+app.post("/registerBot", async (req, res) => {
+  
+  // Here I receive all the parameters from the generated bot on the front-end
+  let body = req.body;
+
+  let apiKey = req.apiKey;
+  let chart = req.chart;
+  let chartType = req.chartType; // "Candlestick" | "Line"
+  let tokenSymbol = req.symbol;
+  let tokenPrice = req.price;
+  let tokensPerMatic = req.tokenMatic;
+  let circulatingSupply = req.circulatingSupply;
+  let totalSupply = req.totalSupply;
+  let marketCap = req.marketCap;
+  let liquidity = req.liquidity;
+  let lpValue = req.lpValue;
+  let dailyChange = req.dailyChange;
+  let dailyVolume = req.dailyVolume;
+  let totalValueLocked = req.tvl;
+  let holders = req.holders;
+
+  let botAdded = await addBot(apiKey, chart, chartType, tokenSymbol, tokenPrice, tokensPerMatic,
+    circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
+    totalValueLocked, holders);
+
+  if(botAdded === true) {
+
+  } else {
+
+  }
+  
+  /*
+  Options for the BOT (Free)
+- Price Chart: Candlestick | Line
+- Symbol
+- Token Price
+- Tokens/Matic
+- Circulating Supply
+- Total Supply
+- Market Cap
+- Liquidity
+- LP Value
+
+Options for the BOT (Staking $50 Acura)
+- 24Hr Change
+- 24Hr Volume
+- Total Value Locked
+- Total Holders
+*/
+
+  if(req.body.message.chat.type === "private") {
+    bot.sendMessage(req.body.message.chat.id, `Please, register your bot.`);
+    res.sendStatus(200);
+  } else {
+    bot.processUpdate(req.body);
+    console.log(req.body);
+    res.sendStatus(200);
+  }
+
+})
+
+
+// LISTEN
+server.listen(process.env.PORT, () => {
+  console.log(`Server listening on ${process.env.PORT}`);
 
 });
