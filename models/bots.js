@@ -4,8 +4,13 @@ const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 let validChartTypes = {
-    values: ["Candlestick", "Line"],
-    message: "{VALUE} is not a valir type of chart."
+    values: ["Candlestick", "Line", ""],
+    message: "{VALUE} is not a valid chart type."
+}
+
+let validGroupTypes = {
+    values: ["Public", "Private"],
+    message: "{VALUE} is not a valid group type."
 }
 
 let botSchema = new Schema({
@@ -20,7 +25,7 @@ let botSchema = new Schema({
     },
     chartType: { 
     	type: String, 
-    	default: "Candlestick",
+    	default: "",
         enum: validChartTypes 
     },
     chatId: {
@@ -83,6 +88,16 @@ let botSchema = new Schema({
     active: {
         type: Boolean,
         default: true
+    },
+    groupMembers: {
+        type: Number,
+        default: 0,
+        required: false
+    },
+    groupType: {
+        type: String,
+        default: "Public",
+        enum: validGroupTypes
     }
 });
 
