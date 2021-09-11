@@ -13,10 +13,16 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const uuidv4 = require("uuid/v4");
 
-const server = https.createServer({
-  key: fs.readFileSync("./cert/key.pem", "utf8"),
-  cert: fs.readFileSync("./cert/server.crt", "utf8")
-} , app);
+const server;
+
+if(process.env.NODE_ENV !== "production") {
+  server = https.createServer({
+    key: fs.readFileSync("./cert/key.pem", "utf8"),
+    cert: fs.readFileSync("./cert/server.crt", "utf8")
+  } , app);
+} else {
+  server = https.createServer(app);
+}
 
 //const verifyToken = require("../middlewares/authentication");
 const bot = require("./pricebot");
