@@ -38,7 +38,7 @@ app.use(cors({
 
 // Connect to MongoDB
 // Me conecto a la base de datos de MongoDB
-mongoose.connect(process.env.URLDB, { useNewUrlParser: true , useUnifiedTopology: true }, (error, respuesta) => {
+mongoose.connect(process.env.URLDB, (error, respuesta) => {
 
 if (error) throw error;
 
