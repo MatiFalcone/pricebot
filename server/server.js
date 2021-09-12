@@ -2,7 +2,6 @@
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
 }
-const https = require("https");
 const fs = require("fs");
 const express = require("express");
 const jwt = require("jsonwebtoken");
@@ -15,12 +14,14 @@ const uuidv4 = require("uuid/v4");
 
 let server;
 if(process.env.NODE_ENV !== "production") {
+  const https = require("https");
   server = https.createServer({
     key: fs.readFileSync("./cert/key.pem", "utf8"),
     cert: fs.readFileSync("./cert/server.crt", "utf8")
   } , app);
 } else {
-  server = https.createServer(app);
+  const http = require("http");
+  server = http.createServer(app);
 }
 
 //const verifyToken = require("../middlewares/authentication");
