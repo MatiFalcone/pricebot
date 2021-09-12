@@ -38,13 +38,13 @@ app.use(cors({
 
 // Connect to MongoDB
 // Me conecto a la base de datos de MongoDB
-mongoose.connect(process.env.URLDB, (error, respuesta) => {
+mongoose.connect(process.env.URLDB, { useNewUrlParser: true , useUnifiedTopology: true }, (error, respuesta) => {
 
 if (error) throw error;
 
 console.log("Database ONLINE");
 
-}, { useNewUrlParser: true , useUnifiedTopology: true });
+});
 
 // Process ID
 console.log(process.pid);
