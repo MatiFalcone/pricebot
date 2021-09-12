@@ -42,9 +42,9 @@ mongoose.connect(process.env.URLDB, (error, respuesta) => {
 
 if (error) throw error;
 
-console.log("Database ONLINE.");
+console.log("Database ONLINE");
 
-});
+}, { useNewUrlParser: true });
 
 // Process ID
 console.log(process.pid);
