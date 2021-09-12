@@ -115,23 +115,25 @@ app.post(rthw, (req, res) => {
     if(body.message.hasOwnProperty("text")) {
       let pieces = body.message.text.split(" ");
       let command = pieces[0];
-    }
-    // The update is a message
-    // If it's a private conversation, I tell the user to register the bot
-    if(body.message.chat.type === "private") {
-      // Capture the "/register" command to provide more information
-      if(command === "/register") {
-        bot.sendMessage(body.message.chat.id, `Please, add me to your group and use this same command there. Keep in mind you need to have Admin rights.`);
-        res.sendStatus(200);
+      // The update is a message
+      // If it's a private conversation, I tell the user to register the bot
+      if(body.message.chat.type === "private") {
+        // Capture the "/register" command to provide more information
+        if(command === "/register") {
+          bot.sendMessage(body.message.chat.id, `Please, add me to your group and use this same command there. Keep in mind you need to have Admin rights.`);
+          res.sendStatus(200);
+        } else {
+          bot.sendMessage(body.message.chat.id, `Please, register your bot.`);
+          res.sendStatus(200);
+        }
       } else {
-        bot.sendMessage(body.message.chat.id, `Please, register your bot.`);
+        bot.processUpdate(body);
         res.sendStatus(200);
       }
     } else {
-      bot.processUpdate(body);
+      console.log("update ignored");
       res.sendStatus(200);
     }
-
   } else {
     console.log("update ignored");
     res.sendStatus(200);
