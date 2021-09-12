@@ -173,9 +173,8 @@ app.post("/addBot", async (req, res) => {
   console.log(botAdded);
 
   if(botAdded) {
-    res.sendStatus(200);
+    return res.status(200).json({botID: apiKey});
   } else {
-    //console.log("Error adding the bot.");
     res.sendStatus(400);
   }
 
