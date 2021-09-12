@@ -44,7 +44,7 @@ if (error) throw error;
 
 console.log("Database ONLINE");
 
-}, { useNewUrlParser: true });
+}, { useNewUrlParser: true , useUnifiedTopology: true });
 
 // Process ID
 console.log(process.pid);
