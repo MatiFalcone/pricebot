@@ -169,58 +169,87 @@ Mandatory information for all bots
 bot.onText(/\/price/, async (msg) => {
 
     // Get bot configuration
-    let botConfig = await getBotConfig(msg.chat.id);
+    let response = await getBotConfig(msg.chat.id);
 
-    if(!botConfig) {
+    if(!response) {
         bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
         return;
-    }
+    } 
 
-    let USDC = "0x2791bca1f2de4661ed88a30c99a7a9449aa84174";
-
-    // Data to retrieve
-    let tokenSymbol;
-    let tokenPriceUSDC;
+    // Get the MATIC Price
     let MATICPriceUSD;
-    let MATICPriceBTC;
-    let MATICRate;
-    let totalSupply;
-    let circulatingSupply;
-    let marketCap;
+    const maticPrice = await getMaticPrice();
+    MATICPriceUSD = maticPrice.result.maticusd;   
 
-    if(botConfig.tokenAddress === "") {
-        bot.sendMessage(msg.chat.id, "There is no token address registered. Add a token with the /set_token command followed by your token address.");
-        return;
-    } else {
-        // Get the token price and the MATIC Price
-        const tokenPrice = await getTokenPriceIn(botConfig.tokenAddress, USDC);
-        const maticPrice = await getMaticPrice();
+    // Send answer depending on bot configuration
+    var answer = "";
+    if(response.botConfig.tokenSymbol || response.botConfig.tokenPrice || response.botConfig.tokensPerMatic || response.botConfig.liquidity) {
+        
+        let USDC = "0x2791bca1f2de4661ed88a30c99a7a9449aa84174";
+        const tokenPrice = await getTokenPriceIn(response.botConfig.tokenAddress, USDC);
 
         if(tokenPrice.data.ethereum.dexTrades.length == 1) {
-            
-            //const tokenLiquidity = await getTokenLiquidityAt(blockNumber, botConfig.tokenAddress);
-            const tokenTotalSupply = await getTokenTotalSupply(botConfig.tokenAddress);
-            totalSupply = (parseInt(tokenTotalSupply.result, 10) / 1000000000000000000).toLocaleString();
-            const tokenCirculatingSupply = await getTokenCirculatingSupply(botConfig.tokenAddress);
-            circulatingSupply = parseInt(tokenCirculatingSupply.result, 10) / 1000000000000000000;
-            editedCirculatingSupply = (parseInt(tokenCirculatingSupply.result, 10) / 1000000000000000000).toLocaleString();
-            //totalLiquidity = parseInt(tokenLiquidity.data.tokens[0].totalLiquidity, 10) * parseInt(tokenPrice.data.ethereum.dexTrades[0].quotePrice, 10);            console.log("liquidity: ", totalLiquidity);
 
-            // Show data
+            var tokenSymbol;
+            var tokenPriceUSDC;
+
             tokenSymbol = tokenPrice.data.ethereum.dexTrades[0].baseCurrency.symbol
             tokenPriceUSDC = tokenPrice.data.ethereum.dexTrades[0].quotePrice.toFixed(2);
-            MATICPriceUSD = maticPrice.result.maticusd;
-            MATICPriceBTC = maticPrice.result.maticbtc;
-            MATICRate = (MATICPriceUSD / tokenPriceUSDC).toFixed(2);
-            marketCap = (circulatingSupply * tokenPriceUSDC).toLocaleString();
-
-            bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: `Symbol: ${tokenSymbol}\n${tokenSymbol} Price: $${tokenPriceUSDC}\nMATIC Price: $${MATICPriceUSD}\nMATIC Price (BTC): ${MATICPriceBTC}\n${tokenSymbol}/MATIC: ${MATICRate}\n${tokenSymbol} Total Supply: ${totalSupply}\n${tokenSymbol} Circulating Supply: ${editedCirculatingSupply}\n${tokenSymbol} Market Cap: $${marketCap}\n\n_Powered by_ [Acura Network](http://acuranetwork.io/)`, parse_mode: "Markdown"});
 
         } else {
-            bot.sendMessage(msg.chat.id, `The price of ${tokenName} couldn't be retrieve.`);
+            bot.sendMessage(msg.chat.id, `The price couldn't be retrieved.`);
             return;
         }
+    }
 
+    if(response.botConfig.tokenSymbol) {
+        answer = answer + `Symbol: ${tokenSymbol}\n`
+    }
+
+    if(response.botConfig.tokenPrice) {
+        answer = answer + `${tokenSymbol} Price: $${tokenPriceUSDC}\n`
+    }
+
+    if(response.botConfig.tokensPerMatic) {
+        let MATICRate;
+        MATICRate = (MATICPriceUSD / tokenPriceUSDC).toFixed(6);
+        answer = answer + `${tokenSymbol}/MATIC: ${MATICRate}\n`
+    }
+
+    if(response.botConfig.circulatingSupply || response.botConfig.marketCap) {
+        var circulatingSupply;
+        const tokenCirculatingSupply = await getTokenCirculatingSupply(response.botConfig.tokenAddress);
+        circulatingSupply = parseInt(tokenCirculatingSupply.result, 10) / 1000000000000000000;
+        editedCirculatingSupply = (parseInt(tokenCirculatingSupply.result, 10) / 1000000000000000000).toLocaleString();
+        answer = answer + `Circulating Supply: ${editedCirculatingSupply}\n`
+    }
+
+    if(response.botConfig.totalSupply) {
+        let totalSupply;
+        const tokenTotalSupply = await getTokenTotalSupply(response.botConfig.tokenAddress);
+        totalSupply = (parseInt(tokenTotalSupply.result, 10) / 1000000000000000000).toLocaleString();
+        answer = answer + `Total Supply: ${totalSupply}\n`
+    }
+
+    if(response.botConfig.marketCap) {
+        let marketCap;
+        marketCap = (circulatingSupply * tokenPriceUSDC).toLocaleString();
+        answer = answer + `Marketcap: $${marketCap}\n`
+    }
+
+    if(response.botConfig.liquidity) {
+        let liquidity;
+        //const tokenLiquidity = await getTokenLiquidityAt(blockNumber, response.botConfig.tokenAddress);
+        //totalLiquidity = parseInt(tokenLiquidity.data.tokens[0].totalLiquidity, 10) * parseInt(tokenPrice.data.ethereum.dexTrades[0].quotePrice, 10);
+        answer = answer + `Liquidity: $ \n`
+    }
+
+    answer = answer + `\nMatic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+
+    if(response.botConfig.chart) {
+        bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: answer, parse_mode: "Markdown"});
+    } else {
+        bot.sendMessage(msg.chat.id, answer, {parse_mode: "Markdown"});
     }
   
 });
@@ -235,10 +264,71 @@ bot.onText(/\/contract/, async (msg) => {
         return;
     }
 
-    bot.sendMessage(msg.chat.id, `The token address is: ${response.botConfig.tokenAddress}\n`, {
+    bot.sendMessage(msg.chat.id, `The address of your token is: ${response.botConfig.tokenAddress}`, {
         reply_markup: {
             inline_keyboard: [[{
                 text: 'View on Polygonscan',
+                url: `https://polygonscan.com/address/${response.botConfig.tokenAddress}`
+            }]]
+        }
+    });
+
+});
+
+bot.onText(/\/chart/, async (msg) => {
+
+    // Get bot configuration
+    let response = await getBotConfig(msg.chat.id);
+
+    if(!response) {
+        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+        return;
+    }
+
+    // Get the MATIC Price
+    let MATICPriceUSD;
+    const maticPrice = await getMaticPrice();
+    MATICPriceUSD = maticPrice.result.maticusd; 
+
+    bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: `Matic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`, parse_mode: "Markdown"});
+
+});
+
+bot.onText(/\/editor/, async (msg) => {
+
+    // Get bot configuration
+    let response = await getBotConfig(msg.chat.id);
+
+    if(!response) {
+        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+        return;
+    }
+
+    bot.sendMessage(msg.chat.id, `is: ${response.botConfig.tokenAddress}`, {
+        reply_markup: {
+            inline_keyboard: [[{
+                text: 'View the visual editor on the following link.',
+                url: `https://polygonscan.com/address/${response.botConfig.tokenAddress}`
+            }]]
+        }
+    });
+
+});
+
+bot.onText(/\/updateBot/, async (msg) => {
+
+    // Get bot configuration
+    let response = await getBotConfig(msg.chat.id);
+
+    if(!response) {
+        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+        return;
+    }
+
+    bot.sendMessage(msg.chat.id, `is: ${response.botConfig.tokenAddress}`, {
+        reply_markup: {
+            inline_keyboard: [[{
+                text: 'View the visual editor on the following link.',
                 url: `https://polygonscan.com/address/${response.botConfig.tokenAddress}`
             }]]
         }

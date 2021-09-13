@@ -100,7 +100,7 @@ app.post("/auth", (req, res) => {
 })
 
 // PRICEBOT MANAGEMENT
-const { addBot } = require("../functions/bot");
+const { addBot, editBot } = require("../functions/bot");
 
 app.use(express.json());
 const rthw = `/bot${process.env.TELEGRAM_API_KEY}`;
@@ -179,6 +179,44 @@ app.post("/addBot", async (req, res) => {
   }
 
 });
+
+//app.post("/editBot", verifyToken, async (req, res) => {
+  app.post("/editBot", async (req, res) => {
+  
+    // Here I receive all the parameters from the generated bot on the front-end
+    let body = req.body;
+    
+    let chatId = body.chatId;
+    let chart = body.chart;
+    let chartType = body.chartType; // "Candlestick" | "Line"
+    let tokenAddress = body.tokenAddress;
+    let tokenSymbol = body.symbol;
+    let tokenPrice = body.price;
+    let tokensPerMatic = body.tokenMatic;
+    let circulatingSupply = body.circulatingSupply;
+    let totalSupply = body.totalSupply;
+    let marketCap = body.marketCap;
+    let liquidity = body.liquidity;
+    let lpValue = body.lpValue;
+    let dailyChange = body.dailyChange;
+    let dailyVolume = body.dailyVolume;
+    let totalValueLocked = body.tvl;
+    let holders = body.holders;
+    let active = body.active;
+  
+    const botEdited = await editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
+      circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
+      totalValueLocked, holders, active);
+  
+    console.log(botEdited);
+  
+    if(botEdited) {
+      return res.status(200).json({botUpdated: chatId});
+    } else {
+      res.sendStatus(400);
+    }
+  
+  });
 
 // LISTEN
 server.listen(process.env.PORT, () => {

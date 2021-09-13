@@ -57,6 +57,44 @@ async function registerBot(apiKey, chatId, groupMembers, groupType) {
 
 }
 
+async function editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
+    circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
+    totalValueLocked, holders, active) {
+
+    // Search for the entry in the database
+    let botConfig = await Bot.findOneAndUpdate({chatId: chatId}, {
+        chart: chart, 
+        chartType: chartType, 
+        tokenAddress: tokenAddress,
+        tokenSymbol: tokenSymbol,
+        tokenPrice: tokenPrice,
+        tokensPerMatic: tokensPerMatic,
+        circulatingSupply: circulatingSupply,
+        totalSupply: totalSupply,
+        marketCap: marketCap,
+        liquidity: liquidity,
+        lpValue: lpValue,
+        dailyChange: dailyChange,
+        dailyVolume: dailyVolume,
+        totalValueLocked: totalValueLocked,
+        holders: holders,
+        active: active
+    });
+    
+    if(!botConfig) {
+        return {
+            ok: false,
+            message: "Bot configuration not found."
+        }
+    }
+	
+    return {
+        ok: true,
+        botConfig
+    };
+	
+}
+
 async function getBotConfig(chatId) {
 
     // Search for the entry in the database
@@ -97,4 +135,4 @@ async function getBotConfigAndUpdateTokenAddress(chatId, tokenAddress) {
     
 }
 
-module.exports = { addBot, registerBot, getBotConfig, getBotConfigAndUpdateTokenAddress };
+module.exports = { addBot, registerBot, editBot, getBotConfig, getBotConfigAndUpdateTokenAddress };

@@ -53,6 +53,10 @@ let botSchema = new Schema({
         type: Boolean,
         default: true
     },
+    totalSupply: {
+        type: Boolean,
+        default: true
+    },
     marketCap: {
         type: Boolean,
         default: true
