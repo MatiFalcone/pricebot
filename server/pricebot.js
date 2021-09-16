@@ -307,7 +307,7 @@ bot.onText(/\/chart/, async (msg) => {
     //var socket = iterator.next()
     console.log(sockets);
     if(sockets.length >= 1) {
-        sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType})
+        sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId })
     } else {
         console.log("There are no instances of Front-End to handle the screenshot request.");
     }

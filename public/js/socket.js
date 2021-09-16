@@ -19,5 +19,6 @@ socket.on("getScreenshot", function(data) {
     console.log("The pricebot backend is asking for a screenshot.");
     console.log("Token Address: ", data.tokenAddress);
     console.log("Chart Type: ", data.chartType);
+    console.log("Chart Type: ", data.chatId);
 
 });
