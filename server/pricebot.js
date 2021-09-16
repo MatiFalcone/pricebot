@@ -5,7 +5,8 @@ const getTokenPriceIn = require("./query/token_price");
 const getTokenTotalSupply = require("./query/token_total_supply");
 const getTokenCirculatingSupply = require("./query/token_circulating_supply");
 const getMaticPrice = require("./query/matic_price");
-const { getBotConfig, registerBot, getBotConfigAndUpdateTokenAddress } = require("../functions/bot")
+const { getBotConfig, registerBot, getBotConfigAndUpdate, getBotConfigAndUpdateTokenAddress } = require("../functions/bot")
+const { io } = require("../server/server");
 
 const url = process.env.URL_PUBLIC_FROM_NGROK;
 
@@ -115,34 +116,43 @@ bot.onText(/\/info/, async (msg) => {
 */
 bot.onText(/\/setToken/, async (msg) => {
 
-    // Parse text from the user
-    let pieces = msg.text.split(" ");
-    let tokenAddress = pieces[1];
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
 
-    if(tokenAddress === undefined) {
-        bot.sendMessage(msg.chat.id, "Please, specify the address of the token you want to add.");
-        return;
-    }
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let tokenAddress = pieces[1];
 
-    // Get the information of the token
-    const tokenInfo = await getTokenInfo(tokenAddress, "QuickSwap");
+            if(tokenAddress === undefined) {
+                bot.sendMessage(msg.chat.id, "Please, specify the address of the token you want to add.");
+                return;
+            }
 
-    // Check for errors
-    if(tokenInfo.errors === undefined) {
+            // Get the information of the token
+            const tokenInfo = await getTokenInfo(tokenAddress, "QuickSwap");
 
-        let response = await getBotConfigAndUpdateTokenAddress(msg.chat.id, tokenAddress);         
-        
-        if(!response) {
-            bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
-            return;
+            // Check for errors
+            if(tokenInfo.errors === undefined) {
+
+                let update = { tokenAddress: tokenAddress};
+                let response = await getBotConfigAndUpdate(msg.chat.id, update);         
+                
+                if(!response) {
+                    bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                    return;
+                }
+
+                // send back the matched "whatever" to the chat
+                bot.sendMessage(msg.chat.id, `The address "${tokenAddress}" has been successfully updated as your registered token address.`); 
+            } else {
+                bot.sendMessage(msg.chat.id, "Please, specify a correct address for the token in Polygon (MATIC) network.");
+                return;
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
         }
-
-        // send back the matched "whatever" to the chat
-        bot.sendMessage(msg.chat.id, `The address "${tokenAddress}" has been successfully updated as your registered token address.`); 
-    } else {
-        bot.sendMessage(msg.chat.id, "Please, specify a correct address for the token in Polygon (MATIC) network.");
-        return;
-    }
+    });
      
 });
 
@@ -290,47 +300,544 @@ bot.onText(/\/chart/, async (msg) => {
     const maticPrice = await getMaticPrice();
     MATICPriceUSD = maticPrice.result.maticusd; 
 
-    bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: `Matic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`, parse_mode: "Markdown"});
+    // Get a list of all connected sockets.
+    //var clients = await io.allSockets();
+    var sockets = await io.fetchSockets();
+    //var iterator = clients.values();
+    //var socket = iterator.next()
+    console.log(sockets);
+    if(sockets.length >= 1) {
+        sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType})
+    } else {
+        console.log("There are no instances of Front-End to handle the screenshot request.");
+    }
+
+    //bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: `Matic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`, parse_mode: "Markdown"});
 
 });
 
-bot.onText(/\/editor/, async (msg) => {
+bot.onText(/\/showChart/, async (msg) => {
 
-    // Get bot configuration
-    let response = await getBotConfig(msg.chat.id);
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
 
-    if(!response) {
-        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
-        return;
-    }
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let chart = pieces[1].toLowerCase();
 
-    bot.sendMessage(msg.chat.id, `is: ${response.botConfig.tokenAddress}`, {
-        reply_markup: {
-            inline_keyboard: [[{
-                text: 'View the visual editor on the following link.',
-                url: `https://polygonscan.com/address/${response.botConfig.tokenAddress}`
-            }]]
+            if(chart !== "true" && chart !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showChart command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { chart: chart };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(chart === "true") {
+                bot.sendMessage(msg.chat.id, `Chart on.`);
+            }
+
+            if(chart === "false") {
+                bot.sendMessage(msg.chat.id, `Chart off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
         }
     });
 
 });
 
-bot.onText(/\/updateBot/, async (msg) => {
+bot.onText(/\/setChartType/, async (msg) => {
 
-    // Get bot configuration
-    let response = await getBotConfig(msg.chat.id);
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
 
-    if(!response) {
-        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
-        return;
-    }
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let chartType = pieces[1].toLowerCase();
 
-    bot.sendMessage(msg.chat.id, `is: ${response.botConfig.tokenAddress}`, {
-        reply_markup: {
-            inline_keyboard: [[{
-                text: 'View the visual editor on the following link.',
-                url: `https://polygonscan.com/address/${response.botConfig.tokenAddress}`
-            }]]
+            if(chartType !== "candlestick" && chartType !== "line") {
+                bot.sendMessage(msg.chat.id, `The chart type is incorrect. Please, choose between "candlestick" or "line".`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { chartType: chartType };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            bot.sendMessage(msg.chat.id, `The chart type has been successfully updated to "${chartType}".`);
+
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showTokenSymbol/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let symbol = pieces[1].toLowerCase();
+
+            if(symbol !== "true" && symbol !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showSymbol command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { tokenSymbol: symbol };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(symbol === "true") {
+                bot.sendMessage(msg.chat.id, `Token symbol on.`);
+            }
+
+            if(symbol === "false") {
+                bot.sendMessage(msg.chat.id, `Token symbol off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showTokenPrice/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let price = pieces[1].toLowerCase();
+
+            if(price !== "true" && price !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showPrice command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { tokenPrice: price };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(price === "true") {
+                bot.sendMessage(msg.chat.id, `Token price on.`);
+            }
+
+            if(price === "false") {
+                bot.sendMessage(msg.chat.id, `Token price off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showTokensPerMatic/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let tokensPerMatic = pieces[1].toLowerCase();
+
+            if(tokensPerMatic !== "true" && tokensPerMatic !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showTokensPerMatic command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { tokensPerMatic: tokensPerMatic };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(tokensPerMatic === "true") {
+                bot.sendMessage(msg.chat.id, `Tokens/Matic on.`);
+            }
+
+            if(tokensPerMatic === "false") {
+                bot.sendMessage(msg.chat.id, `Tokens/Matic off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showCirculatingSupply/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let circulatingSupply = pieces[1].toLowerCase();
+
+            if(circulatingSupply !== "true" && circulatingSupply !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showCirculatingSupply command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { circulatingSupply: circulatingSupply };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(circulatingSupply === "true") {
+                bot.sendMessage(msg.chat.id, `Circulating supply on.`);
+            }
+
+            if(circulatingSupply === "false") {
+                bot.sendMessage(msg.chat.id, `Circulating supply off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showTotalSupply/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let totalSupply = pieces[1].toLowerCase();
+
+            if(totalSupply !== "true" && totalSupply !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showTotalSupply command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { totalSupply: totalSupply };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(totalSupply === "true") {
+                bot.sendMessage(msg.chat.id, `Token total supply on.`);
+            }
+
+            if(totalSupply === "false") {
+                bot.sendMessage(msg.chat.id, `Token total supply off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showMarketcap/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let marketcap = pieces[1].toLowerCase();
+
+            if(marketcap !== "true" && marketcap !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showMarketcap command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { marketCap: marketcap };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(marketcap === "true") {
+                bot.sendMessage(msg.chat.id, `Token marketcap on.`);
+            }
+
+            if(marketcap === "false") {
+                bot.sendMessage(msg.chat.id, `Token marketcap off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showLiquidity/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let liquidity = pieces[1].toLowerCase();
+
+            if(liquidity !== "true" && liquidity !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showLiquidity command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { liquidity: liquidity };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(liquidity === "true") {
+                bot.sendMessage(msg.chat.id, `Token liquidity on.`);
+            }
+
+            if(liquidity === "false") {
+                bot.sendMessage(msg.chat.id, `Token liquidity off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showLpValue/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let lpValue = pieces[1].toLowerCase();
+
+            if(lpValue !== "true" && lpValue !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showLpValue command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { lpValue: lpValue };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(lpValue === "true") {
+                bot.sendMessage(msg.chat.id, `Token LP value on.`);
+            }
+
+            if(lpValue === "false") {
+                bot.sendMessage(msg.chat.id, `Token LP value off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showDailyChange/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let dailyChange = pieces[1].toLowerCase();
+
+            if(dailyChange !== "true" && dailyChange !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showDailyChange command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { dailyChange: dailyChange };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(dailyChange === "true") {
+                bot.sendMessage(msg.chat.id, `Token 24hr change on.`);
+            }
+
+            if(dailyChange === "false") {
+                bot.sendMessage(msg.chat.id, `Token 24hr change off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showDailyVolume/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+            
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let dailyVolume = pieces[1].toLowerCase();
+
+            if(dailyVolume !== "true" && dailyVolume !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showDailyVolume command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { dailyVolume: dailyVolume };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(dailyVolume === "true") {
+                bot.sendMessage(msg.chat.id, `Token 24hr volume on.`);
+            }
+
+            if(dailyVolume === "false") {
+                bot.sendMessage(msg.chat.id, `Token 24hr volume off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showTotalValueLocked/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let totalValueLocked = pieces[1].toLowerCase();
+
+            if(totalValueLocked !== "true" && totalValueLocked !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showTotalValueLocked command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { totalValueLocked: totalValueLocked };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(totalValueLocked === "true") {
+                bot.sendMessage(msg.chat.id, `Token total value locked on.`);
+            }
+
+            if(totalValueLocked === "false") {
+                bot.sendMessage(msg.chat.id, `Token total value locked off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
+        }
+    });
+
+});
+
+bot.onText(/\/showHolders/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+
+            // Parse text from the user
+            let pieces = msg.text.split(" ");
+            let holders = pieces[1].toLowerCase();
+
+            if(holders !== "true" && holders !== "false") {
+                bot.sendMessage(msg.chat.id, `Please, specify "true" or "false" after /showHolders command.`);
+                return;
+            }
+
+            // Get bot configuration
+            let update = { holders: holders };
+            let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+            if(!response) {
+                bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(holders === "true") {
+                bot.sendMessage(msg.chat.id, `Token total value locked on.`);
+            }
+
+            if(holders === "false") {
+                bot.sendMessage(msg.chat.id, `Token total value locked off.`);
+            }
+        } else {
+            bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
         }
     });
 

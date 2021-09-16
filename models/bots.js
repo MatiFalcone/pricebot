@@ -4,7 +4,7 @@ const uniqueValidator = require("mongoose-unique-validator");
 const Schema = mongoose.Schema;
 
 let validChartTypes = {
-    values: ["Candlestick", "Line", ""],
+    values: ["candlestick", "line", ""],
     message: "{VALUE} is not a valid chart type."
 }
 

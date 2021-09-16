@@ -5,12 +5,13 @@ if (process.env.NODE_ENV !== "production") {
 const fs = require("fs");
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const { Server } = require("socket.io");
 const app = express();
 const bcrypt = require("bcrypt");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const uuidv4 = require("uuid/v4");
+const path = require("path");
+const { Server } = require("socket.io");
 
 let server;
 if(process.env.NODE_ENV !== "production") {
@@ -23,6 +24,12 @@ if(process.env.NODE_ENV !== "production") {
   const http = require("http");
   server = http.createServer(app);
 }
+
+//const http = require("http");
+//server = http.createServer(app);
+
+module.exports.io = new Server(server);
+require("../functions/sockets");
 
 //const verifyToken = require("../middlewares/authentication");
 const bot = require("./pricebot");
@@ -47,32 +54,12 @@ console.log("Database ONLINE");
 
 });
 
-// Process ID
-console.log(process.pid);
+// Serve static content
+const publicPath = path.resolve(__dirname, '../public');
+app.use(express.static(publicPath));
 
-const io = new Server(server);
-
-// All active connections go in this object
-const clients = {};
-
-// SOCKETS MANAGEMENT
-io.on("connection", (client) => {
-
-  const userID = getUniqueID();
-  
-  console.log((new Date()) + ": Received a new connection from origin " + client.id + ".");
-  // You can rewrite this part of the code to accept only the requests from allowed origin
-  //const connection = io.accept(null, socket.origin);
-  clients[userID] = client;
-  console.log("Connected: " + userID + " in " + Object.getOwnPropertyNames(clients))
-
-  // DISCONNECTION
-  client.on("disconnect", (reason) => {
-    const disconnectedUser = userID;
-    delete clients[userID];
-    console.log("The client disconnected.");
-  });
-
+app.get('/', (req, res) => {
+  res.sendFile("index.html");
 });
 
 app.post("/auth", (req, res) => {

@@ -116,10 +116,10 @@ async function getBotConfig(chatId) {
     
 }
 
-async function getBotConfigAndUpdateTokenAddress(chatId, tokenAddress) {
+async function getBotConfigAndUpdate(chatId, update) {
 
     // Search for the entry in the database
-    let botConfig = await Bot.findOneAndUpdate({chatId: chatId}, {tokenAddress: tokenAddress});
+    let botConfig = await Bot.findOneAndUpdate({chatId: chatId}, update);
     
     if(!botConfig) {
         return {
@@ -135,4 +135,4 @@ async function getBotConfigAndUpdateTokenAddress(chatId, tokenAddress) {
     
 }
 
-module.exports = { addBot, registerBot, editBot, getBotConfig, getBotConfigAndUpdateTokenAddress };
+module.exports = { addBot, registerBot, editBot, getBotConfig, getBotConfigAndUpdate };
