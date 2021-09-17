@@ -257,7 +257,15 @@ bot.onText(/\/price/, async (msg) => {
     answer = answer + `\nMatic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
 
     if(response.botConfig.chart) {
-        bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: answer, parse_mode: "Markdown"});
+        // Get a list of all connected sockets.
+        var sockets = await io.fetchSockets();
+
+        if(sockets.length >= 1) {
+            sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer })
+        } else {
+            console.log("There are no instances of Front-End to handle the screenshot request.");
+        }
+
     } else {
         bot.sendMessage(msg.chat.id, answer, {parse_mode: "Markdown"});
     }
@@ -298,21 +306,18 @@ bot.onText(/\/chart/, async (msg) => {
     // Get the MATIC Price
     let MATICPriceUSD;
     const maticPrice = await getMaticPrice();
-    MATICPriceUSD = maticPrice.result.maticusd; 
+    MATICPriceUSD = maticPrice.result.maticusd;   
+
+    var answer = `\nMatic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
 
     // Get a list of all connected sockets.
-    //var clients = await io.allSockets();
     var sockets = await io.fetchSockets();
-    //var iterator = clients.values();
-    //var socket = iterator.next()
-    console.log(sockets);
+
     if(sockets.length >= 1) {
-        sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId })
+        sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
     } else {
         console.log("There are no instances of Front-End to handle the screenshot request.");
     }
-
-    //bot.sendPhoto(msg.chat.id, "https://www.tradingview.com/x/zWnsQz2y/", {caption: `Matic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`, parse_mode: "Markdown"});
 
 });
 

@@ -1,18 +1,14 @@
 const { io } = require("../server/server");
-const bot = require("../server/pricebot");
+const getMaticPrice = require("../server/query/matic_price");
 
 // SOCKETS MANAGEMENT
-io.on('connection', (socket) => {
-  console.log('a user connected');
+io.on("connection", client => {
 
-  socket.on('sendScreenshot', (data, callback) => {
+  client.on("sendScreenshot", (data) => {
 
-    let persona = usuarios.getPersona(client.id);
+    const bot = require("../server/pricebot");
 
-    let mensaje = crearMensaje(persona.nombre, data.mensaje);
-    socket.broadcast.to(persona.sala).emit('crearMensaje', mensaje);
-
-    callback(mensaje);
+    bot.sendPhoto(data.chatId, data.url, { caption: data.caption, parse_mode: "Markdown" });
 
   });
 

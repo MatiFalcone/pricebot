@@ -94,7 +94,6 @@ const rthw = `/bot${process.env.TELEGRAM_API_KEY}`;
 
 app.post(rthw, (req, res) => {
   
-  console.log(req.body);
   let body = req.body;
 
   if (body.hasOwnProperty("message")) {
@@ -156,8 +155,6 @@ app.post("/addBot", async (req, res) => {
   const botAdded = await addBot(apiKey, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
     circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
     totalValueLocked, holders);
-
-  console.log(botAdded);
 
   if(botAdded) {
     return res.status(200).json({botID: apiKey});
