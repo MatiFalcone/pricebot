@@ -45,7 +45,20 @@ Mandatory information for all bots
 
 bot.onText(/\/start/, async (msg) => {
 
-    console.log(msg);
+    
+    // Get bot configuration
+    let response = await getBotConfig(msg.chat.id);
+
+    if(!response) {
+        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+        return;
+    }
+
+    if(response.botConfig.active === false) {
+        bot.sendMessage(msg.chat.id, "Please, register your bot.");
+        return;
+    }
+
     bot.sendMessage(msg.chat.id, `Hi ${msg.from.first_name}! 😀\n\nWelcome to the Acura Network Price Bot 🔥\n\nDo you wanna know the commands❓\n\nType /info to see how they work!`);    
 
 });
