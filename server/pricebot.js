@@ -5,7 +5,7 @@ const getTokenPriceIn = require("./query/token_price");
 const getTokenTotalSupply = require("./query/token_total_supply");
 const getTokenCirculatingSupply = require("./query/token_circulating_supply");
 const getMaticPrice = require("./query/matic_price");
-const { getBotConfig, registerBot, getBotConfigAndUpdate, getBotConfigAndUpdateTokenAddress } = require("../functions/bot")
+const { getBotConfig, registerBot, getBotConfigAndUpdate } = require("../functions/bot")
 const { io } = require("../server/server");
 
 const url = process.env.URL_PUBLIC_FROM_NGROK;
@@ -89,22 +89,79 @@ bot.onText(/\/register/, async (msg) => {
 
 });
 
+// Register a bot to a group given an ID
+bot.onText(/\/unregister/, async (msg) => {
+
+    // Check if the sender is Admin
+    bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
+        if ((data.status === "creator") || (data.status === "administrator")){
+           /* Here I need to go to MongoDB and check if there is an entry already generated for that
+           API Key. If that is the case, then I have to update the entry with the chatID received.
+           Then, everytime I receive a command, I can retrieve the config of that specific bot
+           using the chatID. 
+           If I don't find an entry with that API Key, then I say the API Key is not valid.
+           */
+            // Get bot configuration
+           let update = { active: false };
+           let response = await getBotConfigAndUpdate(msg.chat.id, update);
+
+           if(!response) {
+               bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+               return;
+           }
+
+           if(response.botConfig.active === false) {
+               bot.sendMessage(msg.chat.id, "This bot has already been unregistered.");
+               return;
+           }
+
+           bot.sendMessage(msg.chat.id, "The bot has been successfully unregistered.");
+       
+        } else {
+           bot.sendMessage(msg.chat.id, "You need to be an Admin to register this bot.");
+        }
+    });
+
+});
+
 bot.onText(/\/info/, async (msg) => {
 
-    bot.sendMessage(msg.chat.id, `*Available Bot Commands* 
+    // Get bot configuration
+    let response = await getBotConfig(msg.chat.id);
+
+    if(!response) {
+        bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+        return;
+    }
+
+    if(response.botConfig.active === false) {
+        bot.sendMessage(msg.chat.id, "Please, register your bot.");
+        return;
+    }
+
+    bot.sendMessage(msg.chat.id, `*Available Acura Network Bot Commands* 
 
     ---ADMIN---   
    /register {botID}: Register a bot to a group given an ID.
    /unregister: Unregister and delete a bot from the group.
    /setToken {tokenContractAddress}: Update the contract address of your token.
-   /updatePriceMessage {messageText}: Update price message.
-   /disablePriceChart {true/false} Disable chart image on the price command.
+   /showChart {true/false}: Enable/Disable chart image on the price command.
    /setChartType {candlestick/line}: Set chart type to candlestick or line.
+   /showTokenSymbol {true/false}: Enable/Disable the token symbol on the price command.
+   /showTokenPrice {true/false}: Enable/Disable the token price on the price command.
+   /showTokensPerMatic {true/false}: Enable/Disable token/Matic rate on the price command.
+   /showCirculatingSupply {true/false}: Enable/Disable token circulating supply on the price command.
+   /showTotalSupply {true/false}: Enable/Disable token total supply on the price command.
+   /showMarketcap {true/false}: Enable/Disable token marketcap on the price command.
+   /showLiquidity {true/false}: Enable/Disable token liquidity on the price command.
+   /updatePriceMessage {messageText}: Update price message.
+   /disablePriceChart {true/false}: Disable chart image on the price command.
+   
    
     ---USER DEFAULT--- 
    /price: Get price information about the registered token.
-   /contract: Get the token contract address and link to Polygonscan.
-   /chart: Get a chart of the token's price in USD.
+   /contract: Get the token's contract address and a link to Polygonscan.
+   /chart: Get a chart of the token's price in USD, along with the price of Matic and Acura.
    /info: Get list of available commands.`, {parse_mode: "Markdown"});
 
 });
@@ -140,6 +197,11 @@ bot.onText(/\/setToken/, async (msg) => {
                 
                 if(!response) {
                     bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                    return;
+                }
+
+                if(response.botConfig.active === false) {
+                    bot.sendMessage(msg.chat.id, "Please, register your bot.");
                     return;
                 }
 
@@ -184,7 +246,12 @@ bot.onText(/\/price/, async (msg) => {
     if(!response) {
         bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
         return;
-    } 
+    }
+
+    if(response.botConfig.active === false) {
+        bot.sendMessage(msg.chat.id, "Please, register your bot.");
+        return;
+    }
 
     // Get the MATIC Price
     let MATICPriceUSD;
@@ -249,8 +316,8 @@ bot.onText(/\/price/, async (msg) => {
 
     if(response.botConfig.liquidity) {
         let liquidity;
-        //const tokenLiquidity = await getTokenLiquidityAt(blockNumber, response.botConfig.tokenAddress);
-        //totalLiquidity = parseInt(tokenLiquidity.data.tokens[0].totalLiquidity, 10) * parseInt(tokenPrice.data.ethereum.dexTrades[0].quotePrice, 10);
+        const tokenLiquidity = await getTokenLiquidityAt(blockNumber, response.botConfig.tokenAddress);
+        totalLiquidity = parseInt(tokenLiquidity.data.tokens[0].totalLiquidity, 10) * parseInt(tokenPrice.data.ethereum.dexTrades[0].quotePrice, 10);
         answer = answer + `Liquidity: $ \n`
     }
 
@@ -282,6 +349,11 @@ bot.onText(/\/contract/, async (msg) => {
         return;
     }
 
+    if(response.botConfig.active === false) {
+        bot.sendMessage(msg.chat.id, "Please, register your bot.");
+        return;
+    }
+
     bot.sendMessage(msg.chat.id, `The address of your token is: ${response.botConfig.tokenAddress}`, {
         reply_markup: {
             inline_keyboard: [[{
@@ -300,6 +372,11 @@ bot.onText(/\/chart/, async (msg) => {
 
     if(!response) {
         bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+        return;
+    }
+
+    if(response.botConfig.active === false) {
+        bot.sendMessage(msg.chat.id, "Please, register your bot.");
         return;
     }
 
@@ -345,6 +422,11 @@ bot.onText(/\/showChart/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(chart === "true") {
                 bot.sendMessage(msg.chat.id, `Chart on.`);
             }
@@ -383,6 +465,11 @@ bot.onText(/\/setChartType/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             bot.sendMessage(msg.chat.id, `The chart type has been successfully updated to "${chartType}".`);
 
         } else {
@@ -413,6 +500,11 @@ bot.onText(/\/showTokenSymbol/, async (msg) => {
 
             if(!response) {
                 bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
                 return;
             }
 
@@ -454,6 +546,11 @@ bot.onText(/\/showTokenPrice/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(price === "true") {
                 bot.sendMessage(msg.chat.id, `Token price on.`);
             }
@@ -489,6 +586,11 @@ bot.onText(/\/showTokensPerMatic/, async (msg) => {
 
             if(!response) {
                 bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
                 return;
             }
 
@@ -530,6 +632,11 @@ bot.onText(/\/showCirculatingSupply/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(circulatingSupply === "true") {
                 bot.sendMessage(msg.chat.id, `Circulating supply on.`);
             }
@@ -565,6 +672,11 @@ bot.onText(/\/showTotalSupply/, async (msg) => {
 
             if(!response) {
                 bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
                 return;
             }
 
@@ -606,6 +718,11 @@ bot.onText(/\/showMarketcap/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(marketcap === "true") {
                 bot.sendMessage(msg.chat.id, `Token marketcap on.`);
             }
@@ -641,6 +758,11 @@ bot.onText(/\/showLiquidity/, async (msg) => {
 
             if(!response) {
                 bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
                 return;
             }
 
@@ -682,6 +804,11 @@ bot.onText(/\/showLpValue/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(lpValue === "true") {
                 bot.sendMessage(msg.chat.id, `Token LP value on.`);
             }
@@ -717,6 +844,11 @@ bot.onText(/\/showDailyChange/, async (msg) => {
 
             if(!response) {
                 bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
                 return;
             }
 
@@ -758,6 +890,11 @@ bot.onText(/\/showDailyVolume/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(dailyVolume === "true") {
                 bot.sendMessage(msg.chat.id, `Token 24hr volume on.`);
             }
@@ -796,6 +933,11 @@ bot.onText(/\/showTotalValueLocked/, async (msg) => {
                 return;
             }
 
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
+                return;
+            }
+
             if(totalValueLocked === "true") {
                 bot.sendMessage(msg.chat.id, `Token total value locked on.`);
             }
@@ -831,6 +973,11 @@ bot.onText(/\/showHolders/, async (msg) => {
 
             if(!response) {
                 bot.sendMessage(msg.chat.id, "There is a problem with your bot configuration. Please, repeat the process of registration.");
+                return;
+            }
+
+            if(response.botConfig.active === false) {
+                bot.sendMessage(msg.chat.id, "Please, register your bot.");
                 return;
             }
 
