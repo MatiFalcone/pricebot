@@ -11,16 +11,15 @@ if(process.env.NODE_ENV !== "production") {
   redis = new Redis(process.env.REDIS_URL);
 }
  
-async function getTokenInfo(tokenAddress, exchangeAddress) {
+async function getTokenInfo(network, tokenAddress, exchangeAddress) {
 
   const query = `
 {
-  ethereum(network: matic) {
+  ethereum(network: ${network}) {
     dexTrades(
       options: {desc: ["block.height","tradeIndex"], limit: 1}
       exchangeName: {in: ["${exchangeAddress}"]}
       baseCurrency: {is: "${tokenAddress}"}
-      quoteCurrency: {is: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"} #WMATIC
       date: {since: null, till: null}
     ) {
       transaction {
@@ -44,6 +43,7 @@ async function getTokenInfo(tokenAddress, exchangeAddress) {
         name
         symbol
         address
+        decimals
       }
       quoteCurrency {
         name
@@ -82,7 +82,7 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 5 minutes
-redis.set(`tokenInfo:${tokenAddress}+${exchangeAddress}`, JSON.stringify(data), "EX", 300);
+redis.set(`tokenInfo:${tokenAddress}+${exchangeAddress}`, JSON.stringify(data), "EX", 10);
 return data;
 
 }

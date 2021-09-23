@@ -135,26 +135,27 @@ app.post("/addBot", async (req, res) => {
 
   let chart = body.chart;
   let chartType = body.chartType; // "Candlestick" | "Line"
+  let network = body.network;
+  let swap = body.swap;
+  let message = body.message;
   let tokenAddress = body.tokenAddress;
   let tokenSymbol = body.symbol;
   let tokenPrice = body.price;
-  let tokensPerMatic = body.tokenMatic;
+  let tokensPerNative = body.tokenNative;
   let circulatingSupply = body.circulatingSupply;
   let totalSupply = body.totalSupply;
   let marketCap = body.marketCap;
   let liquidity = body.liquidity;
-  let lpValue = body.lpValue;
   let dailyChange = body.dailyChange;
   let dailyVolume = body.dailyVolume;
   let totalValueLocked = body.tvl;
-  let holders = body.holders;
 
   // Generate API Key
   let apiKey = uuidv4();
 
-  const botAdded = await addBot(apiKey, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
-    circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
-    totalValueLocked, holders);
+  const botAdded = await addBot(apiKey, chart, chartType, network, swap, message, tokenAddress, tokenSymbol, tokenPrice, tokensPerNative,
+    circulatingSupply, totalSupply, marketCap, liquidity, dailyChange, dailyVolume,
+    totalValueLocked);
 
   if(botAdded) {
     return res.status(200).json({botID: apiKey});
@@ -176,21 +177,19 @@ app.post("/addBot", async (req, res) => {
     let tokenAddress = body.tokenAddress;
     let tokenSymbol = body.symbol;
     let tokenPrice = body.price;
-    let tokensPerMatic = body.tokenMatic;
+    let tokensPerNative = body.tokenNative;
     let circulatingSupply = body.circulatingSupply;
     let totalSupply = body.totalSupply;
     let marketCap = body.marketCap;
     let liquidity = body.liquidity;
-    let lpValue = body.lpValue;
     let dailyChange = body.dailyChange;
     let dailyVolume = body.dailyVolume;
     let totalValueLocked = body.tvl;
-    let holders = body.holders;
     let active = body.active;
   
-    const botEdited = await editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
-      circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
-      totalValueLocked, holders, active);
+    const botEdited = await editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerNative,
+      circulatingSupply, totalSupply, marketCap, liquidity, dailyChange, dailyVolume,
+      totalValueLocked, active);
   
     console.log(botEdited);
   

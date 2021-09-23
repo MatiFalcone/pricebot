@@ -11,12 +11,12 @@ if(process.env.NODE_ENV !== "production") {
   redis = new Redis(process.env.REDIS_URL);
 }
  
-async function getMaticPrice() {
+async function getEthPrice() {
 
-const url = `https://api.polygonscan.com/api?module=stats&action=maticprice&apikey=${process.env.POLYGONSCAN_API_KEY}`;
+const url = `https://api.etherscan.io/api?module=stats&action=ethprice&apikey=${process.env.ETHERSCAN_API_KEY}`;
 
 // Check if I have a cache value for this response
-let cacheEntry = await redis.get(`maticPrice:`);
+let cacheEntry = await redis.get(`ethPrice:`);
 
 // If we have a cache hit
 if (cacheEntry) {
@@ -28,10 +28,10 @@ if (cacheEntry) {
 const response = await fetch(url);
 const data = await response.json();
 // Save entry in cache for 5 minutes
-redis.set(`maticPrice:`, JSON.stringify(data), "EX", 10);
+redis.set(`ethPrice:`, JSON.stringify(data), "EX", 10);
 return data;
 
 }
 
-module.exports = getMaticPrice;
+module.exports = getEthPrice;
 

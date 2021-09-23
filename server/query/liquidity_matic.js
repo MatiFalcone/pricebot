@@ -56,7 +56,7 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 1 minute
-redis.set(`tokenLiquidityAt:${blockNumber}+${tokenAddress}`, JSON.stringify(data), "EX", 120);
+redis.set(`tokenLiquidityAt:${blockNumber}+${tokenAddress}`, JSON.stringify(data), "EX", 10);
 return data;
 
 }

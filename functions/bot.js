@@ -1,29 +1,29 @@
-const bcrypt = require('bcrypt');
 const Bot = require("../models/bots");
 
-async function addBot(apiKey, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
-    circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
-    totalValueLocked, holders) {
+async function addBot(apiKey, chart, chartType, network, swap, message, tokenAddress, tokenSymbol, tokenPrice, tokensPerNative,
+    circulatingSupply, totalSupply, marketCap, liquidity, dailyChange, dailyVolume,
+    totalValueLocked) {
 
 	// Create Bot instance
 	let addedBot = new Bot({
 		apiKey,
 		chart,
 		chartType,
+        network,
+        swap,
+        message,
         tokenAddress,
 		tokenSymbol,
         tokenPrice,
-        tokensPerMatic,
+        tokensPerNative,
         circulatingSupply,
         totalSupply,
         marketCap,
         liquidity,
-        lpValue,
         dailyChange,
         dailyVolume,
         totalValueLocked,
-        holders,
-        active: true
+        active: true,
 	});
 
 	// Grabo en la base de datos
@@ -57,27 +57,28 @@ async function registerBot(apiKey, chatId, groupMembers, groupType) {
 
 }
 
-async function editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerMatic,
-    circulatingSupply, totalSupply, marketCap, liquidity, lpValue, dailyChange, dailyVolume,
-    totalValueLocked, holders, active) {
+async function editBot(chatId, chart, chartType, network, swap, message, tokenAddress, tokenSymbol, tokenPrice, tokensPerNative,
+    circulatingSupply, totalSupply, marketCap, liquidity, dailyChange, dailyVolume,
+    totalValueLocked, active) {
 
     // Search for the entry in the database
     let botConfig = await Bot.findOneAndUpdate({chatId: chatId}, {
         chart: chart, 
-        chartType: chartType, 
+        chartType: chartType,
+        network: network,
+        swap: swap,
+        message: message,
         tokenAddress: tokenAddress,
         tokenSymbol: tokenSymbol,
         tokenPrice: tokenPrice,
-        tokensPerMatic: tokensPerMatic,
+        tokensPerNative: tokensPerNative,
         circulatingSupply: circulatingSupply,
         totalSupply: totalSupply,
         marketCap: marketCap,
         liquidity: liquidity,
-        lpValue: lpValue,
         dailyChange: dailyChange,
         dailyVolume: dailyVolume,
         totalValueLocked: totalValueLocked,
-        holders: holders,
         active: active
     });
     
@@ -99,8 +100,6 @@ async function getBotConfig(chatId) {
 
     // Search for the entry in the database
     let botConfig = await Bot.findOne({chatId: chatId});
-
-    console.log(botConfig);
     
     if(!botConfig) {
         return {
