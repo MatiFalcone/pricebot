@@ -25,7 +25,12 @@ if(process.env.NODE_ENV !== "production") {
   server = http.createServer(app);
 }
 
-module.exports.io = new Server(server);
+module.exports.io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 require("../functions/sockets");
 
 //const verifyToken = require("../middlewares/authentication");
@@ -36,7 +41,9 @@ app.use(express.urlencoded({
 }));
 
 //app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors({
+  origin: "*"
+}));
 
 // Connect to MongoDB
 // Me conecto a la base de datos de MongoDB
