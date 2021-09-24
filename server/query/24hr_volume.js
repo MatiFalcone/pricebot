@@ -33,7 +33,6 @@ async function getDailyVolume(network, tokenAddress, swap, since, before) {
   }
 `;
 
-// 2021-09-22T14:39:00Z
 const url = "https://graphql.bitquery.io/";
 
 const opts = {

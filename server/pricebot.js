@@ -1,7 +1,8 @@
 const TelegramBot = require("node-telegram-bot-api");
 const getTokenInfo = require("./query/token_info");
 const getTokenPriceIn = require("./query/token_price");
-const getTokenLiquidity = require("./query/liquidity_matic");
+const getTokenLiquidityQuick = require("./query/liquidity_quick");
+const getTokenLiquiditySushi = require("./query/liquidity_sushi");
 const getTokenTotalSupply = require("./query/token_total_supply");
 const getTokenCirculatingSupply = require("./query/token_circulating_supply");
 const getDailyVolume = require("./query/24hr_volume");
@@ -407,12 +408,17 @@ bot.onText(/\/price/, async (msg) => {
 
     if(response.botConfig.liquidity) {
         let totalLiquidity;
+
         if(response.botConfig.network === "matic") {
-            const tokenLiquidity = await getTokenLiquidity(response.botConfig.tokenAddress);
-            totalLiquidity = (parseInt(tokenLiquidity.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            const tokenLiquidityQuick = await getTokenLiquidityQuick(response.botConfig.tokenAddress);
+            totalLiquidity = (parseInt(tokenLiquidityQuick.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
         }
+
         if(response.botConfig.network === "ethereum") {
+            const tokenLiquiditySushi = await getTokenLiquiditySushi(response.botConfig.tokenAddress);
+            totalLiquidity = (parseInt(tokenLiquiditySushi.data.tokens[0].liquidity, 10) * tokenPriceForCalcs).toLocaleString();
         }
+
         if(response.botConfig.network === "bsc") {
         }
         
@@ -422,56 +428,50 @@ bot.onText(/\/price/, async (msg) => {
     answer = answer + `-----------------------------------\n`;
 
     if(response.botConfig.dailyChange) {
-        if(response.botConfig.network === "matic") {
-            let currentDate = new Date();
-            let currentDateUTC = Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate(),
-                                        currentDate.getUTCHours(), currentDate.getUTCMinutes(), currentDate.getUTCSeconds());
-            let before = new Date(currentDateUTC);
-            let beforeIso = before.toISOString();
-            let since = new Date();
-            since.setDate(since.getDate() - 1);
-            let beforeComparison = new Date();
-            let sinceComparison = new Date();
-            beforeComparison.setDate(beforeComparison.getDate() - 2);
-            sinceComparison.setDate(sinceComparison.getDate() - 3);
-            beforeComparisonIso = beforeComparison.toISOString();
-            sinceComparisonIso = sinceComparison.toISOString();
-            sinceIso = since.toISOString();
 
-            console.log("Since: ", sinceIso);
-            console.log("Before: ", beforeIso);
-            console.log("Since Comparison: ", sinceComparisonIso);
-            console.log("Before Comparison: ", beforeComparisonIso);
+        let currentDate = new Date();
+        let currentDateUTC = Date.UTC(currentDate.getUTCFullYear(), currentDate.getUTCMonth(), currentDate.getUTCDate(), currentDate.getUTCHours(), currentDate.getUTCMinutes(), currentDate.getUTCSeconds());
+        let before = new Date(currentDateUTC);
+        let beforeIso = before.toISOString();
+        let since = new Date();
+        since.setDate(since.getDate() - 1);
+        let beforeComparison = new Date();
+        let sinceComparison = new Date();
+        beforeComparison.setDate(beforeComparison.getDate() - 2);
+        sinceComparison.setDate(sinceComparison.getDate() - 3);
+        beforeComparisonIso = beforeComparison.toISOString();
+        sinceComparisonIso = sinceComparison.toISOString();
+        sinceIso = since.toISOString();
 
-            let tokenDailyVolume = await getDailyVolume(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, sinceIso, beforeIso);
-            let tokenDailyVolumeComparison = await getDailyVolume(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, sinceComparisonIso, beforeComparisonIso);
-            var dailyVolume = 0;
-            for (let i = 0; i < tokenDailyVolume.data.twenty_four_hour.dexTrades.length; i++) {
-                var element = tokenDailyVolume.data.twenty_four_hour.dexTrades[i];
-                var dailyVolume = dailyVolume + element.tradeAmount;
-            }
-            console.log("dailyVolume: ", dailyVolume);
-            var dailyVolumeComparison = 0;
-            for (let i = 0; i < tokenDailyVolumeComparison.data.twenty_four_hour.dexTrades.length; i++) {
-                var element = tokenDailyVolumeComparison.data.twenty_four_hour.dexTrades[i];
-                var dailyVolumeComparison = dailyVolumeComparison + element.tradeAmount;
-            }
-            console.log("dailyVolumeComparison: ", dailyVolumeComparison);
-            var dailyChange = ((dailyVolume - dailyVolumeComparison) / dailyVolumeComparison) * 100;
-            var upOrDown = "➖";
-
-            if(Math.sign(dailyChange) === 1) {
-                upOrDown = "🟢"
-            }
-
-            if(Math.sign(dailyChange) === -1) {
-                upOrDown = "🔴"
-            }
-
-            dailyChange = dailyChange.toFixed(2);
-            dailyChange = dailyChange.toLocaleString();
-            dailyVolume = dailyVolume.toLocaleString();
+        let tokenDailyVolume = await getDailyVolume(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, sinceIso, beforeIso);
+        let tokenDailyVolumeComparison = await getDailyVolume(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, sinceComparisonIso, beforeComparisonIso);
+            
+        var dailyVolume = 0;
+        for (let i = 0; i < tokenDailyVolume.data.twenty_four_hour.dexTrades.length; i++) {
+            var element = tokenDailyVolume.data.twenty_four_hour.dexTrades[i];
+            var dailyVolume = dailyVolume + element.tradeAmount;
         }
+
+        var dailyVolumeComparison = 0;
+        for (let i = 0; i < tokenDailyVolumeComparison.data.twenty_four_hour.dexTrades.length; i++) {
+            var element = tokenDailyVolumeComparison.data.twenty_four_hour.dexTrades[i];
+            var dailyVolumeComparison = dailyVolumeComparison + element.tradeAmount;
+        }
+
+        var dailyChange = ((dailyVolume - dailyVolumeComparison) / dailyVolumeComparison) * 100;
+        var upOrDown = "➖";
+
+        if(Math.sign(dailyChange) === 1) {
+            upOrDown = "🟢"
+        }
+
+        if(Math.sign(dailyChange) === -1) {
+            upOrDown = "🔴"
+        }
+
+        dailyChange = dailyChange.toFixed(2);
+        dailyChange = dailyChange.toLocaleString();
+        dailyVolume = dailyVolume.toLocaleString();
         answer = answer + `24Hr Change: ${dailyChange}% ${upOrDown}\n`
     }
 

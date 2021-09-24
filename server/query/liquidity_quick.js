@@ -12,15 +12,11 @@ if(process.env.NODE_ENV !== "production") {
   redis = new Redis(process.env.REDIS_URL);
 }
 
-async function getTokenLiquidity(tokenAddress) {
+async function getTokenLiquidityQuick(tokenAddress) {
 
   const query = `
   {
     tokens(where: {id: "${tokenAddress}"}) {
-      id
-      symbol
-      name
-      decimals
       totalLiquidity
     }
   }
@@ -40,7 +36,7 @@ const opts = {
 };
 
 // Check if I have a cache value for this response
-let cacheEntry = await redis.get(`tokenLiquidity:${tokenAddress}`);
+let cacheEntry = await redis.get(`tokenLiquidityQuick:${tokenAddress}`);
 
 // If we have a cache hit
 if (cacheEntry) {
@@ -52,10 +48,10 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 1 minute
-redis.set(`tokenLiquidity:${tokenAddress}`, JSON.stringify(data), "EX", 10);
+redis.set(`tokenLiquidityQuick:${tokenAddress}`, JSON.stringify(data), "EX", 10);
 return data;
 
 }
 
-module.exports = getTokenLiquidity;
+module.exports = getTokenLiquidityQuick;
 
