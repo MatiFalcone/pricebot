@@ -499,14 +499,12 @@ bot.onText(/\/price/, async (msg) => {
 
     if(response.botConfig.chart) {
         // Get a list of all connected sockets.
-        var sockets = await io.fetchSockets();
-
+        const sockets = await io.fetchSockets();
         if(sockets.length >= 1) {
-            sockets[1].emit("getScreenshot", { network: response.botConfig.network, tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer })
+            sockets[1].emit("getScreenshot", { network: response.botConfig.network, tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
         } else {
             console.log("There are no instances of Front-End to handle the screenshot request.");
         }
-
     } else {
         bot.sendMessage(msg.chat.id, answer, {parse_mode: "Markdown"});
     }
@@ -580,23 +578,23 @@ bot.onText(/\/chart/, async (msg) => {
 
     if(response.botConfig.network === "matic") {
         // Get the MATIC Price
-        let MATICPriceUSD;
+        var MATICPriceUSD;
         const maticPrice = await getMaticPrice();
-        MATICPriceUSD = maticPrice.result.maticusd;   
+        MATICPriceUSD = maticPrice.result.maticusd;
     }
 
     if(response.botConfig.network === "ethereum") {
         // Get the MATIC Price
-        let ETHPriceUSD;
+        var ETHPriceUSD;
         const ethPrice = await getEthPrice();
         ETHPriceUSD = ethPrice.result.ethusd;   
     }
 
     if(response.botConfig.network === "bsc") {
         // Get the MATIC Price
-        let BNBPriceUSD;
+        var BNBPriceUSD;
         const bnbPrice = await getBnbPrice();
-        BNBPriceUSD = bnbPrice.result.bnbusd;   
+        BNBPriceUSD = bnbPrice.result.ethusd;   
     }
 
     var answer = "";
@@ -614,10 +612,9 @@ bot.onText(/\/chart/, async (msg) => {
     }
 
     // Get a list of all connected sockets.
-    var sockets = await io.fetchSockets();
-
+    const sockets = await io.fetchSockets();
     if(sockets.length >= 1) {
-        sockets[1].emit("getScreenshot", { tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
+        sockets[1].emit("getScreenshot", { network: response.botConfig.network, tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
     } else {
         console.log("There are no instances of Front-End to handle the screenshot request.");
     }

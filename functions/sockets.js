@@ -1,5 +1,4 @@
 const { io } = require("../server/server");
-const getMaticPrice = require("../server/query/matic_price");
 
 // SOCKETS MANAGEMENT
 io.on("connection", client => {
