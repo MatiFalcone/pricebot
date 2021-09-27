@@ -11,7 +11,18 @@ if(process.env.NODE_ENV !== "production") {
   redis = new Redis(process.env.REDIS_URL);
 }
  
-async function getTokenPriceIn(network, tokenAddress, exchangeAddress, quoteCurrency) {
+async function getTokenPriceIn(network, tokenAddress, exchangeAddress, quoteCurrency, since, till) {
+
+  var quotes1 = " ";
+  var quotes2 = " ";
+
+  if(since !== "null") {
+    quotes1 = `"`;
+  }
+
+  if(till !== "null") {
+    quotes2 = `"`;
+  }
 
   const query = `
 {
@@ -21,11 +32,8 @@ async function getTokenPriceIn(network, tokenAddress, exchangeAddress, quoteCurr
       exchangeName: {in: ["${exchangeAddress}"]}
       baseCurrency: {is: "${tokenAddress}"}
       quoteCurrency: {is: "${quoteCurrency}"}
-      date: {since: null, till: null}
+      date: {since: ${quotes1}${since}${quotes1}, till: ${quotes2}${till}${quotes2}}
     ) {
-      transaction {
-        hash
-      }
       tradeIndex
       smartContract {
         address {
@@ -41,15 +49,8 @@ async function getTokenPriceIn(network, tokenAddress, exchangeAddress, quoteCurr
         height
       }
       baseCurrency {
-        name
         symbol
-        address
         decimals
-      }
-      quoteCurrency {
-        name
-        symbol
-        address
       }
       quotePrice
     }
@@ -71,7 +72,7 @@ const opts = {
 };
 
 // Check if I have a cache value for this response
-let cacheEntry = await redis.get(`tokenPriceIn:${network}+${tokenAddress}+${quoteCurrency}`);
+let cacheEntry = await redis.get(`tokenPriceIn:${network}+${tokenAddress}+${quoteCurrency}+${since}+${till}`);
 
 // If we have a cache hit
 if (cacheEntry) {
@@ -83,7 +84,7 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 5 minutes
-redis.set(`tokenPriceIn:${network}+${tokenAddress}+${quoteCurrency}`, JSON.stringify(data), "EX", 10);
+redis.set(`tokenPriceIn:${network}+${tokenAddress}+${quoteCurrency}+${since}+${till}`, JSON.stringify(data), "EX", 10);
 return data;
 
 }

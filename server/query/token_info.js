@@ -39,18 +39,6 @@ async function getTokenInfo(network, tokenAddress, exchangeAddress) {
       block {
         height
       }
-      baseCurrency {
-        name
-        symbol
-        address
-        decimals
-      }
-      quoteCurrency {
-        name
-        symbol
-        address
-      }
-      quotePrice
     }
   }
 }

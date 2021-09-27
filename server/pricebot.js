@@ -3,12 +3,16 @@ const getTokenInfo = require("./query/token_info");
 const getTokenPriceIn = require("./query/token_price");
 const getTokenLiquidityQuick = require("./query/liquidity_quick");
 const getTokenLiquiditySushi = require("./query/liquidity_sushi");
+const getTokenLiquidityPancake = require("./query/liquidity_pancake");
 const getTokenTotalSupply = require("./query/token_total_supply");
 const getTokenCirculatingSupply = require("./query/token_circulating_supply");
 const getDailyVolume = require("./query/24hr_volume");
 const getMaticPrice = require("./query/matic_price");
 const getEthPrice = require("./query/eth_price");
 const getBnbPrice = require("./query/bnb_price");
+const getTotalValueLockedQuick = require("./query/tvl_quick");
+const getTotalValueLockedSushi = require("./query/tvl_sushi");
+const getTotalValueLockedPancake = require("./query/tvl_pancake");
 const capitalizeFirstLetter = require("../functions/aux");
 const { getBotConfig, registerBot, getBotConfigAndUpdate } = require("../functions/bot")
 const { io } = require("../server/server");
@@ -93,16 +97,15 @@ bot.onText(/\/register/, async (msg) => {
            }
 
            let registeredBot = await registerBot(registrationKey, chatId, groupMembers, groupType);
-           
-           if(registeredBot.updatedConfig.active === false) {
-               bot.sendMessage(msg.chat.id, `This bot has been unregistered. Please, register a new bot.`);
-               return;
-           }
 
            if(registeredBot.ok === false) {
                bot.sendMessage(msg.chat.id, `Invalid registration key!`); 
            } else {
-               bot.sendMessage(msg.chat.id, `Your bot has been successfully registered!`);
+                if(registeredBot.updatedConfig.active === false) {
+                    bot.sendMessage(msg.chat.id, `This bot has been unregistered. Please, register a new bot.`);
+                    return;
+                }
+                bot.sendMessage(msg.chat.id, `Your bot has been successfully registered!`);
            }
         } else {
            bot.sendMessage(msg.chat.id, "You need to be an Admin to register this bot.");
@@ -255,25 +258,6 @@ bot.onText(/\/setToken/, async (msg) => {
      
 });
 
-/* Get the following information of the token
-- Price Chart: Candlestick | Line
-- Symbol
-- Token Price
-- Tokens/Matic
-- Circulating Supply
-- Total Supply
-- Market Cap
-- Liquidity
-
-Options for the BOT (Staking $50 Acura)
-- 24Hr Change
-- 24Hr Volume
-- Total Value Locked
-
-Mandatory information for all bots
-- Matic Price
-- Acura Price | Powered by Acura Network
-*/
 bot.onText(/\/price/, async (msg) => {
 
     // Get bot configuration
@@ -315,7 +299,7 @@ bot.onText(/\/price/, async (msg) => {
     var answer = "";
     if(response.botConfig.tokenSymbol || response.botConfig.tokenPrice || response.botConfig.tokensPerNative || response.botConfig.circulatingSupply || response.botConfig.totalSupply || response.botConfig.liquidity || response.botConfig.marketCap) {
         
-        let quoteCurrency = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
+        var quoteCurrency = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
 
         if(response.botConfig.network === "ethereum") {
             quoteCurrency = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"; // WETH
@@ -325,7 +309,7 @@ bot.onText(/\/price/, async (msg) => {
             quoteCurrency = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"; // WBNB
         }
 
-        var tokenPrice = await getTokenPriceIn(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, quoteCurrency);
+        var tokenPrice = await getTokenPriceIn(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, quoteCurrency, "null", "null");
 
         if(tokenPrice.data.ethereum.dexTrades.length === 1) {
 
@@ -420,6 +404,8 @@ bot.onText(/\/price/, async (msg) => {
         }
 
         if(response.botConfig.network === "bsc") {
+            const tokenLiquidityPancake = await getTokenLiquidityPancake(response.botConfig.tokenAddress);
+            totalLiquidity = (parseInt(tokenLiquidityPancake.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
         }
         
         answer = answer + `Liquidity: $${totalLiquidity}\n`
@@ -435,30 +421,33 @@ bot.onText(/\/price/, async (msg) => {
         let beforeIso = before.toISOString();
         let since = new Date();
         since.setDate(since.getDate() - 1);
-        let beforeComparison = new Date();
-        let sinceComparison = new Date();
-        beforeComparison.setDate(beforeComparison.getDate() - 2);
-        sinceComparison.setDate(sinceComparison.getDate() - 3);
-        beforeComparisonIso = beforeComparison.toISOString();
-        sinceComparisonIso = sinceComparison.toISOString();
         sinceIso = since.toISOString();
 
         let tokenDailyVolume = await getDailyVolume(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, sinceIso, beforeIso);
-        let tokenDailyVolumeComparison = await getDailyVolume(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, sinceComparisonIso, beforeComparisonIso);
-            
+        
         var dailyVolume = 0;
         for (let i = 0; i < tokenDailyVolume.data.twenty_four_hour.dexTrades.length; i++) {
             var element = tokenDailyVolume.data.twenty_four_hour.dexTrades[i];
             var dailyVolume = dailyVolume + element.tradeAmount;
         }
 
-        var dailyVolumeComparison = 0;
-        for (let i = 0; i < tokenDailyVolumeComparison.data.twenty_four_hour.dexTrades.length; i++) {
-            var element = tokenDailyVolumeComparison.data.twenty_four_hour.dexTrades[i];
-            var dailyVolumeComparison = dailyVolumeComparison + element.tradeAmount;
+        var quoteCurrency = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
+        var nativePrice = MATICPriceUSD;
+
+        if(response.botConfig.network === "ethereum") {
+            quoteCurrency = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"; // WETH
+            nativePrice = ETHPriceUSD;
         }
 
-        var dailyChange = ((dailyVolume - dailyVolumeComparison) / dailyVolumeComparison) * 100;
+        if(response.botConfig.network === "bsc") {
+            quoteCurrency = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"; // WBNB
+            nativePrice = BNBPriceUSD;
+        }
+
+        var tokenPriceYesterday = await getTokenPriceIn(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, quoteCurrency, "null", sinceIso);
+        var tokenPriceUSDYesterday = tokenPriceYesterday.data.ethereum.dexTrades[0].quotePrice * nativePrice;
+
+        var dailyChange = ((tokenPriceForCalcs - tokenPriceUSDYesterday) / tokenPriceUSDYesterday) * 100;
         var upOrDown = "➖";
 
         if(Math.sign(dailyChange) === 1) {
@@ -480,7 +469,27 @@ bot.onText(/\/price/, async (msg) => {
     }
 
     if(response.botConfig.totalValueLocked) {
-        answer = answer + `Total Value Locked🔓: $ \n`
+        
+        if(response.botConfig.network === "matic") {
+            var tvl;
+            const totalValueLockedQuick = await getTotalValueLockedQuick();
+            tvl = (parseInt(totalValueLockedQuick.data.uniswapFactories[0].totalLiquidityUSD, 10)).toLocaleString();
+        }
+
+        if(response.botConfig.network === "ethereum") {
+            var tvl;
+            const totalValueLockedSushi = await getTotalValueLockedSushi();
+            tvl = (parseInt(totalValueLockedSushi.data.factories[0].liquidityUSD, 10)).toLocaleString();
+        }
+
+        if(response.botConfig.network === "bsc") {
+            var tvl;
+            const totalValueLockedPancake = await getTotalValueLockedPancake();
+            tvl = (parseInt(totalValueLockedPancake.data.pancakeFactories[0].totalLiquidityUSD, 10)).toLocaleString();
+        }
+
+        answer = answer + `Total Value Locked🔓: $${tvl}\n`;
+
     }
 
     answer = answer + `-----------------------------------\n`;
