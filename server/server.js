@@ -12,6 +12,7 @@ const mongoose = require("mongoose");
 const uuidv4 = require("uuid/v4");
 const path = require("path");
 const { Server } = require("socket.io");
+const { getBotConfigAndUpdate } = require("../functions/bot")
 
 let server;
 if(process.env.NODE_ENV !== "production") {
@@ -89,16 +90,34 @@ app.post("/auth", (req, res) => {
 })
 
 // PRICEBOT MANAGEMENT
-const { addBot, editBot } = require("../functions/bot");
+const { addBot, editBot, getBotStats } = require("../functions/bot");
 
 app.use(express.json());
 const rthw = `/bot${process.env.TELEGRAM_API_KEY}`;
 
-app.post(rthw, (req, res) => {
+app.post(rthw, async (req, res) => {
   
   let body = req.body;
+  console.log(body);
 
   if (body.hasOwnProperty("message")) {
+
+    if (body.message.hasOwnProperty("new_chat_members")) {
+      // Sumar uno al grupo
+      let groupMembers = await bot.getChatMemberCount(body.message.chat.id);
+      // Get bot configuration
+      let update = { groupMembers: groupMembers };
+      await getBotConfigAndUpdate(body.message.chat.id, update);
+
+    }
+
+    if (body.message.hasOwnProperty("left_chat_member")) {
+      // Restar uno al grupo
+      let groupMembers = await bot.getChatMemberCount(body.message.chat.id);
+      // Get bot configuration
+      let update = { groupMembers: groupMembers };
+      await getBotConfigAndUpdate(body.message.chat.id, update);
+    }
 
     if(body.message.hasOwnProperty("text")) {
       let pieces = body.message.text.split(" ");
@@ -119,11 +138,9 @@ app.post(rthw, (req, res) => {
         res.sendStatus(200);
       }
     } else {
-      console.log("update ignored");
       res.sendStatus(200);
     }
   } else {
-    console.log("update ignored");
     res.sendStatus(200);
   }
 
@@ -168,40 +185,53 @@ app.post("/addBot", async (req, res) => {
 });
 
 //app.post("/editBot", verifyToken, async (req, res) => {
-  app.post("/editBot", async (req, res) => {
+app.post("/editBot", async (req, res) => {
   
-    // Here I receive all the parameters from the generated bot on the front-end
-    let body = req.body;
+  // Here I receive all the parameters from the generated bot on the front-end
+  let body = req.body;
     
-    let chatId = body.chatId;
-    let chart = body.chart;
-    let chartType = body.chartType; // "Candlestick" | "Line"
-    let tokenAddress = body.tokenAddress;
-    let tokenSymbol = body.symbol;
-    let tokenPrice = body.price;
-    let tokensPerNative = body.tokenNative;
-    let circulatingSupply = body.circulatingSupply;
-    let totalSupply = body.totalSupply;
-    let marketCap = body.marketCap;
-    let liquidity = body.liquidity;
-    let dailyChange = body.dailyChange;
-    let dailyVolume = body.dailyVolume;
-    let totalValueLocked = body.tvl;
-    let active = body.active;
+  let chatId = body.chatId;
+  let chart = body.chart;
+  let chartType = body.chartType; // "Candlestick" | "Line"
+  let tokenAddress = body.tokenAddress;
+  let tokenSymbol = body.symbol;
+  let tokenPrice = body.price;
+  let tokensPerNative = body.tokenNative;
+  let circulatingSupply = body.circulatingSupply;
+  let totalSupply = body.totalSupply;
+  let marketCap = body.marketCap;
+  let liquidity = body.liquidity;
+  let dailyChange = body.dailyChange;
+  let dailyVolume = body.dailyVolume;
+  let totalValueLocked = body.tvl;
+  let active = body.active;
   
-    const botEdited = await editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerNative,
-      circulatingSupply, totalSupply, marketCap, liquidity, dailyChange, dailyVolume,
-      totalValueLocked, active);
+  const botEdited = await editBot(chatId, chart, chartType, tokenAddress, tokenSymbol, tokenPrice, tokensPerNative,
+    circulatingSupply, totalSupply, marketCap, liquidity, dailyChange, dailyVolume,
+    totalValueLocked, active);
   
-    console.log(botEdited);
+  console.log(botEdited);
   
-    if(botEdited) {
-      return res.status(200).json({botUpdated: chatId});
-    } else {
-      res.sendStatus(400);
-    }
+  if(botEdited) {
+    return res.status(200).json({botUpdated: chatId});
+  } else {
+    res.sendStatus(400);
+  }
   
-  });
+});
+
+//app.post("/editBot", verifyToken, async (req, res) => {
+app.get("/botStats", async (req, res) => {
+   
+  const botStats = await getBotStats();
+  
+  if(botStats.ok === true) {
+    return res.status(200).json({botStats: botStats});
+  } else {
+    res.sendStatus(400);
+  }
+  
+});
 
 // LISTEN
 server.listen(process.env.PORT, () => {

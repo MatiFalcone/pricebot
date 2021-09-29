@@ -134,4 +134,37 @@ async function getBotConfigAndUpdate(chatId, update) {
     
 }
 
-module.exports = { addBot, registerBot, editBot, getBotConfig, getBotConfigAndUpdate };
+async function getBotStats() {
+
+    // Search for the entry in the database
+    let total = await Bot.count({active: true});
+    
+    let members = 0;
+    let public = 0;
+    let private = 0;
+
+    for await (const doc of Bot.find({active: true})) {
+        
+        members = members + doc.groupMembers;
+        
+        if(doc.groupType === "Public") {
+            public = public + 1;
+        }
+
+        if(doc.groupType === "Private") {
+            private = private + 1;
+        }
+
+    }
+
+    return {
+        ok: true,
+        botTotalNumber: total,
+        botTotalMembers: members,
+        botPublicGroup: public,
+        botPrivateGroup: private
+    };
+    
+}
+
+module.exports = { addBot, registerBot, editBot, getBotConfig, getBotConfigAndUpdate, getBotStats };
