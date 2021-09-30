@@ -98,7 +98,6 @@ const rthw = `/bot${process.env.TELEGRAM_API_KEY}`;
 app.post(rthw, async (req, res) => {
   
   let body = req.body;
-  console.log(body);
 
   if (body.hasOwnProperty("message")) {
 

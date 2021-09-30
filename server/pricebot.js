@@ -3,7 +3,9 @@ const getTokenInfo = require("./query/token_info");
 const getTokenPriceIn = require("./query/token_price");
 const getTokenLiquidityQuick = require("./query/liquidity_quick");
 const getTokenLiquiditySushi = require("./query/liquidity_sushi");
+const getTokenLiquidityUniswap = require("./query/liquidity_uniswap");
 const getTokenLiquidityPancake = require("./query/liquidity_pancake");
+const getTokenLiquidityApe = require("./query/liquidity_ape");
 const getTokenTotalSupply = require("./query/token_total_supply");
 const getTokenCirculatingSupply = require("./query/token_circulating_supply");
 const getDailyVolume = require("./query/24hr_volume");
@@ -12,7 +14,10 @@ const getEthPrice = require("./query/eth_price");
 const getBnbPrice = require("./query/bnb_price");
 const getTotalValueLockedQuick = require("./query/tvl_quick");
 const getTotalValueLockedSushi = require("./query/tvl_sushi");
+const getTotalValueLockedUniswap = require("./query/tvl_uniswap");
 const getTotalValueLockedPancake = require("./query/tvl_pancake");
+const getTotalValueLockedApe = require("./query/tvl_ape");
+const getTotalValueLockedBakery = require("./query/tvl_bakery");
 const capitalizeFirstLetter = require("../functions/aux");
 const { getBotConfig, registerBot, getBotConfigAndUpdate } = require("../functions/bot")
 const { io } = require("../server/server");
@@ -27,29 +32,6 @@ const options = {
 // Create a bot that uses 'webhook' to fetch new updates
 const bot = new TelegramBot(process.env.TELEGRAM_API_KEY, options);
 bot.setWebHook(`${url}/bot${process.env.TELEGRAM_API_KEY}`);
-
-/*
-Options for the BOT (Free)
-- Price Chart: Candlestick | Line
-- Symbol
-- Token Price
-- Tokens/Matic
-- Circulating Supply
-- Total Supply
-- Market Cap
-- Liquidity
-- LP Value
-
-Options for the BOT (Staking $50 Acura)
-- 24Hr Change
-- 24Hr Volume
-- Total Value Locked
-
-Mandatory information for all bots
-- Matic Price
-- Acura Price | Powered by Acura Network
-
-*/
 
 bot.onText(/\/start/, async (msg) => {
 
@@ -67,7 +49,7 @@ bot.onText(/\/start/, async (msg) => {
         return;
     }
 
-    bot.sendMessage(msg.chat.id, `Hi ${msg.from.first_name}! 😀\n\nWelcome to the Acura Network Price Bot 🔥\n\nDo you wanna know the commands❓\n\nType /info to see how they work!`);    
+    bot.sendMessage(msg.chat.id, `Hi ${msg.from.first_name}! 😀\n\nWelcome to the Acura Network Pricebot 🔥\n\nDo you wanna know the commands❓\n\nType /info to see how they work!`);    
 
 });
 
@@ -120,12 +102,6 @@ bot.onText(/\/unregister/, async (msg) => {
     // Check if the sender is Admin
     bot.getChatMember(msg.chat.id, msg.from.id).then(async function(data) {
         if ((data.status === "creator") || (data.status === "administrator")){
-           /* Here I need to go to MongoDB and check if there is an entry already generated for that
-           API Key. If that is the case, then I have to update the entry with the chatID received.
-           Then, everytime I receive a command, I can retrieve the config of that specific bot
-           using the chatID. 
-           If I don't find an entry with that API Key, then I say the API Key is not valid.
-           */
             // Get bot configuration
            let update = { active: false };
            let response = await getBotConfigAndUpdate(msg.chat.id, update);
@@ -297,6 +273,12 @@ bot.onText(/\/price/, async (msg) => {
 
     // Send answer depending on bot configuration
     var answer = "";
+
+    // Add customizable message
+    if(response.botConfig.message !== "") {
+        answer = answer + `${response.botConfig.message}\n\n`;
+    } 
+
     if(response.botConfig.tokenSymbol || response.botConfig.tokenPrice || response.botConfig.tokensPerNative || response.botConfig.circulatingSupply || response.botConfig.totalSupply || response.botConfig.liquidity || response.botConfig.marketCap) {
         
         var quoteCurrency = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
@@ -399,13 +381,29 @@ bot.onText(/\/price/, async (msg) => {
         }
 
         if(response.botConfig.network === "ethereum") {
-            const tokenLiquiditySushi = await getTokenLiquiditySushi(response.botConfig.tokenAddress);
-            totalLiquidity = (parseInt(tokenLiquiditySushi.data.tokens[0].liquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            if(response.botConfig.swap === "SushiSwap") {
+                const tokenLiquiditySushi = await getTokenLiquiditySushi(response.botConfig.tokenAddress);
+                totalLiquidity = (parseInt(tokenLiquiditySushi.data.tokens[0].liquidity, 10) * tokenPriceForCalcs).toLocaleString();        
+            }
+            if(response.botConfig.swap === "Uniswap") {
+                const tokenLiquidityUniswap = await getTokenLiquidityUniswap(response.botConfig.tokenAddress);
+                totalLiquidity = (parseInt(tokenLiquidityUniswap.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();        
+            }
         }
 
         if(response.botConfig.network === "bsc") {
-            const tokenLiquidityPancake = await getTokenLiquidityPancake(response.botConfig.tokenAddress);
-            totalLiquidity = (parseInt(tokenLiquidityPancake.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            if(response.botConfig.swap === "Pancake") {
+                const tokenLiquidityPancake = await getTokenLiquidityPancake(response.botConfig.tokenAddress);
+                totalLiquidity = (parseInt(tokenLiquidityPancake.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            }
+            if(response.botConfig.swap === "ApeSwap") {
+                const tokenLiquidityApe = await getTokenLiquidityApe(response.botConfig.tokenAddress);
+                totalLiquidity = (parseInt(tokenLiquidityApe.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            }
+            if(response.botConfig.swap === "BakerySwap") {
+                const tokenLiquidityBakery = await getTokenLiquidityBakery(response.botConfig.tokenAddress);
+                totalLiquidity = (parseInt(tokenLiquidityBakery.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            }
         }
         
         answer = answer + `Liquidity: $${totalLiquidity}\n`
@@ -477,15 +475,29 @@ bot.onText(/\/price/, async (msg) => {
         }
 
         if(response.botConfig.network === "ethereum") {
-            var tvl;
-            const totalValueLockedSushi = await getTotalValueLockedSushi();
-            tvl = (parseInt(totalValueLockedSushi.data.factories[0].liquidityUSD, 10)).toLocaleString();
+            if(response.botConfig.swap === "SushiSwap") {
+                var tvl;
+                const totalValueLockedSushi = await getTotalValueLockedSushi();
+                tvl = (parseInt(totalValueLockedSushi.data.factories[0].liquidityUSD, 10)).toLocaleString();
+            }
+            if(response.botConfig.swap === "Uniswap") {
+                var tvl;
+                const totalValueLockedUniswap = await getTotalValueLockedUniswap();
+                tvl = (parseInt(totalValueLockedUniswap.data.uniswapFactories[0].totalLiquidityUSD, 10)).toLocaleString();
+            }
         }
 
         if(response.botConfig.network === "bsc") {
-            var tvl;
-            const totalValueLockedPancake = await getTotalValueLockedPancake();
-            tvl = (parseInt(totalValueLockedPancake.data.pancakeFactories[0].totalLiquidityUSD, 10)).toLocaleString();
+            if(response.botConfig.swap === "Pancake") {
+                var tvl;
+                const totalValueLockedPancake = await getTotalValueLockedPancake();
+                tvl = (parseInt(totalValueLockedPancake.data.pancakeFactories[0].totalLiquidityUSD, 10)).toLocaleString();
+            }
+            if(response.botConfig.swap === "ApeSwap") {
+                var tvl;
+                const totalValueLockedApe = await getTotalValueLockedApe();
+                tvl = (parseInt(totalValueLockedApe.data.uniswapFactories[0].totalLiquidityUSD, 10)).toLocaleString();
+            }
         }
 
         answer = answer + `Total Value Locked🔓: $${tvl}\n`;
