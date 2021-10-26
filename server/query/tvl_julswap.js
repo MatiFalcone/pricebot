@@ -12,17 +12,17 @@ if(process.env.NODE_ENV !== "production") {
   redis = new Redis(process.env.REDIS_URL);
 }
 
-async function getTokenLiquidityBakery(tokenAddress) {
+async function getTotalValueLockedJulswap() {
 
   const query = `
   {
-    tokens(where: {id: "${tokenAddress}"}) {
-      totalLiquidity
+    bscswapFactories(first: 1) {
+      totalLiquidityUSD
     }
   }
 `;
 
-const url = "";
+const url = "https://api.thegraph.com/subgraphs/name/ruymaster/julswap";
 
 const opts = {
     method: "POST",
@@ -36,7 +36,7 @@ const opts = {
 };
 
 // Check if I have a cache value for this response
-let cacheEntry = await redis.get(`tokenLiquidityBakery:${tokenAddress}`);
+let cacheEntry = await redis.get(`totalValueLockedJulswap:`);
 
 // If we have a cache hit
 if (cacheEntry) {
@@ -48,10 +48,10 @@ if (cacheEntry) {
 const response = await fetch(url, opts);
 const data = await response.json();
 // Save entry in cache for 1 minute
-redis.set(`tokenLiquidityBakery:${tokenAddress}`, JSON.stringify(data), "EX", 10);
+redis.set(`totalValueLockedJulswap:`, JSON.stringify(data), "EX", 10);
 return data;
 
 }
 
-module.exports = getTokenLiquidityBakery;
+module.exports = getTotalValueLockedJulswap;
 

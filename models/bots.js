@@ -19,7 +19,7 @@ let validNetworks = {
 }
 
 let validSwaps = {
-    values: ["QuickSwap", "AcuraSwap", "SushiSwap", "ApeSwap", "Uniswap", "Pancake", "BakerySwap"],
+    values: ["QuickSwap", "AcuraSwap", "BSCSwap", "SushiSwap", "ApeSwap", "Uniswap", "Pancake", "Pancake v2", "BakerySwap"],
     message: "{VALUE} is not a valid swap."
 }
 

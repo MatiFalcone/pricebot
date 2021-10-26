@@ -5,6 +5,7 @@ const getTokenLiquidityQuick = require("./query/liquidity_quick");
 const getTokenLiquiditySushi = require("./query/liquidity_sushi");
 const getTokenLiquidityUniswap = require("./query/liquidity_uniswap");
 const getTokenLiquidityPancake = require("./query/liquidity_pancake");
+const getTokenLiquidityJulswap = require("./query/liquidity_julswap");
 const getTokenLiquidityApe = require("./query/liquidity_ape");
 const getTokenTotalSupply = require("./query/token_total_supply");
 const getTokenCirculatingSupply = require("./query/token_circulating_supply");
@@ -16,6 +17,7 @@ const getTotalValueLockedQuick = require("./query/tvl_quick");
 const getTotalValueLockedSushi = require("./query/tvl_sushi");
 const getTotalValueLockedUniswap = require("./query/tvl_uniswap");
 const getTotalValueLockedPancake = require("./query/tvl_pancake");
+const getTotalValueLockedJulswap = require("./query/tvl_julswap");
 const getTotalValueLockedApe = require("./query/tvl_ape");
 const getTotalValueLockedBakery = require("./query/tvl_bakery");
 const capitalizeFirstLetter = require("../functions/aux");
@@ -153,7 +155,7 @@ bot.onText(/\/info/, async (msg) => {
    /setChartType {candlestick/line}: Set chart type to candlestick or line.
    /showTokenSymbol {true/false}: Enable/Disable the token symbol on the price command.
    /showTokenPrice {true/false}: Enable/Disable the token price on the price command.
-   /showTokensPerNative {true/false}: Enable/Disable token/Matic/ETH/BNB rate on the price command.
+   /showTokensPerNative {true/false}: Enable/Disable token/BNB/ETH/Matic rate on the price command.
    /showCirculatingSupply {true/false}: Enable/Disable token circulating supply on the price command.
    /showTotalSupply {true/false}: Enable/Disable token total supply on the price command.
    /showMarketcap {true/false}: Enable/Disable token marketcap on the price command.
@@ -165,8 +167,8 @@ bot.onText(/\/info/, async (msg) => {
     ---USER DEFAULT---
 
    /price: Get price information about the registered token.
-   /contract: Get the token's contract address and a link to Polygonscan/Etherscan/BscScan.
-   /chart: Get a chart of the token's price in USD, along with the price of Matic and Acura.
+   /contract: Get the token's contract address and a link to BscScan/Etherscan/Polygonscan.
+   /chart: Get a chart of the token's price in USD, along with the price of BNB.
    /info: Get list of available commands.`, {parse_mode: "Markdown"});
 
 });
@@ -257,14 +259,14 @@ bot.onText(/\/price/, async (msg) => {
     }
 
     if(response.botConfig.network === "ethereum") {
-        // Get the MATIC Price
+        // Get the ETH Price
         var ETHPriceUSD;
         const ethPrice = await getEthPrice();
         ETHPriceUSD = ethPrice.result.ethusd;   
     }
 
     if(response.botConfig.network === "bsc") {
-        // Get the MATIC Price
+        // Get the BNB Price
         var BNBPriceUSD;
         const bnbPrice = await getBnbPrice();
         BNBPriceUSD = bnbPrice.result.ethusd;   
@@ -281,14 +283,14 @@ bot.onText(/\/price/, async (msg) => {
 
     if(response.botConfig.tokenSymbol || response.botConfig.tokenPrice || response.botConfig.tokensPerNative || response.botConfig.circulatingSupply || response.botConfig.totalSupply || response.botConfig.liquidity || response.botConfig.marketCap) {
         
-        var quoteCurrency = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
+        var quoteCurrency = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"; // WBNB
 
         if(response.botConfig.network === "ethereum") {
             quoteCurrency = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"; // WETH
         }
 
-        if(response.botConfig.network === "bsc") {
-            quoteCurrency = "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"; // WBNB
+        if(response.botConfig.network === "matic") {
+            quoteCurrency = "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"; // WMATIC
         }
 
         var tokenPrice = await getTokenPriceIn(response.botConfig.network, response.botConfig.tokenAddress, response.botConfig.swap, quoteCurrency, "null", "null");
@@ -507,15 +509,15 @@ bot.onText(/\/price/, async (msg) => {
     answer = answer + `-----------------------------------\n`;
 
     if(response.botConfig.network === "matic") {
-        answer = answer + `\nMatic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+        answer = answer + `\nMatic: $${MATICPriceUSD} | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
     }
 
     if(response.botConfig.network === "ethereum") {
-        answer = answer + `\nETH: $${ETHPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+        answer = answer + `\nETH: $${ETHPriceUSD} | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
     }
 
     if(response.botConfig.network === "bsc") {
-        answer = answer + `\nBNB: $${BNBPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+        answer = answer + `\nBNB: $${BNBPriceUSD} | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
     }
 
     if(response.botConfig.chart) {
@@ -621,15 +623,15 @@ bot.onText(/\/chart/, async (msg) => {
     var answer = "";
 
     if(response.botConfig.network === "matic") {
-        answer = `\nMatic: $${MATICPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+        answer = `\nMatic: $${MATICPriceUSD} | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
     }
 
     if(response.botConfig.network === "ethereum") {
-        answer = `\nETH: $${ETHPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+        answer = `\nETH: $${ETHPriceUSD} | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
     }
 
     if(response.botConfig.network === "bsc") {
-        answer = `\nBNB: $${BNBPriceUSD}\nAcura: $ | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
+        answer = `\nBNB: $${BNBPriceUSD} | _Powered by_ [Acura Network](http://acuranetwork.io/)`;
     }
 
     // Get a list of all connected sockets.
@@ -874,11 +876,11 @@ bot.onText(/\/showTokensPerNative/, async (msg) => {
             }
 
             if(tokensPerNative === "true") {
-                bot.sendMessage(msg.chat.id, `Tokens/Matic on.`);
+                bot.sendMessage(msg.chat.id, `Tokens/BNB/ETH/Matic on.`);
             }
 
             if(tokensPerNative === "false") {
-                bot.sendMessage(msg.chat.id, `Tokens/Matic off.`);
+                bot.sendMessage(msg.chat.id, `Tokens/BNB/ETH/Matic off.`);
             }
         } else {
             bot.sendMessage(msg.chat.id, "You need to be an Admin to use this command.");
