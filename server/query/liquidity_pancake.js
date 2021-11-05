@@ -22,7 +22,7 @@ async function getTokenLiquidityPancake(tokenAddress) {
   }
 `;
 
-const url = "https://api.thegraph.com/subgraphs/name/nsikimic/pancake-swap-exchange-mainnet";
+const url = "https://api.thegraph.com/subgraphs/name/franrom/pancakeexchange";
 
 const opts = {
     method: "POST",

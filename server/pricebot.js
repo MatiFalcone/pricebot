@@ -375,36 +375,60 @@ bot.onText(/\/price/, async (msg) => {
     }
 
     if(response.botConfig.liquidity) {
-        let totalLiquidity;
+        var totalLiquidity;
 
         if(response.botConfig.network === "matic") {
             const tokenLiquidityQuick = await getTokenLiquidityQuick(response.botConfig.tokenAddress);
-            totalLiquidity = (parseInt(tokenLiquidityQuick.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            if(tokenLiquidityQuick.data.tokens.lenght === 0) {
+                totalLiquidity = 0;
+            } else {
+                totalLiquidity = (parseInt(tokenLiquidityQuick.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+            }
         }
 
         if(response.botConfig.network === "ethereum") {
             if(response.botConfig.swap === "SushiSwap") {
                 const tokenLiquiditySushi = await getTokenLiquiditySushi(response.botConfig.tokenAddress);
-                totalLiquidity = (parseInt(tokenLiquiditySushi.data.tokens[0].liquidity, 10) * tokenPriceForCalcs).toLocaleString();        
+                if(tokenLiquiditySushi.data.tokens.length === 0) {
+                    totalLiquidity = 0;
+                } else {
+                    totalLiquidity = (parseInt(tokenLiquiditySushi.data.tokens[0].liquidity, 10) * tokenPriceForCalcs).toLocaleString();        
+                }
             }
             if(response.botConfig.swap === "Uniswap") {
                 const tokenLiquidityUniswap = await getTokenLiquidityUniswap(response.botConfig.tokenAddress);
-                totalLiquidity = (parseInt(tokenLiquidityUniswap.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();        
+                if(tokenLiquidityUniswap.data.tokens.length === 0) {
+                    totalLiquidity = 0;
+                } else {
+                    totalLiquidity = (parseInt(tokenLiquidityUniswap.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();        
+                }
             }
         }
 
         if(response.botConfig.network === "bsc") {
             if(response.botConfig.swap === "Pancake") {
                 const tokenLiquidityPancake = await getTokenLiquidityPancake(response.botConfig.tokenAddress);
-                totalLiquidity = (parseInt(tokenLiquidityPancake.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+                if(tokenLiquidityPancake.data.tokens.length === 0) {
+                    totalLiquidity = 0;
+                } else {
+                    totalLiquidity = (parseInt(tokenLiquidityPancake.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+                }
             }
             if(response.botConfig.swap === "ApeSwap") {
                 const tokenLiquidityApe = await getTokenLiquidityApe(response.botConfig.tokenAddress);
-                totalLiquidity = (parseInt(tokenLiquidityApe.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+                if(tokenLiquidityApe.data.tokens.length === 0) {
+                    totalLiquidity = 0;    
+                } else {
+                    totalLiquidity = (parseInt(tokenLiquidityApe.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+                }
             }
             if(response.botConfig.swap === "BakerySwap") {
                 const tokenLiquidityBakery = await getTokenLiquidityBakery(response.botConfig.tokenAddress);
-                totalLiquidity = (parseInt(tokenLiquidityBakery.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+                if(tokenLiquidityBakery.data.tokens.length === 0) {
+                    totalLiquidity = 0;
+                } else {
+                    totalLiquidity = (parseInt(tokenLiquidityBakery.data.tokens[0].totalLiquidity, 10) * tokenPriceForCalcs).toLocaleString();
+                }
             }
         }
         
