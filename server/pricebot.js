@@ -553,6 +553,7 @@ bot.onText(/\/price/, async (msg) => {
             } 
             catch(err) {
                 console.log("The emit failed. Keep in mind you need a Front-End connected to handle the screenshot request: ", err);
+                sockets[0].emit("getScreenshot", { network: response.botConfig.network, tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
             }
         } else {
             console.log("There are no instances of Front-End to handle the screenshot request.");
