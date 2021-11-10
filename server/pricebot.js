@@ -548,7 +548,12 @@ bot.onText(/\/price/, async (msg) => {
         // Get a list of all connected sockets.
         const sockets = await io.fetchSockets();
         if(sockets.length >= 1) {
-            sockets[1].emit("getScreenshot", { network: response.botConfig.network, tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
+            try {
+                sockets[1].emit("getScreenshot", { network: response.botConfig.network, tokenAddress: response.botConfig.tokenAddress, chartType: response.botConfig.chartType, chatId: response.botConfig.chatId, caption: answer });
+            } 
+            catch(err) {
+                console.log("The emit failed. Keep in mind you need a Front-End connected to handle the screenshot request.");
+            }
         } else {
             console.log("There are no instances of Front-End to handle the screenshot request.");
         }
